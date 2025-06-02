@@ -1,3 +1,5 @@
+import datetime
+
 import sqlalchemy
 from sqlalchemy import create_engine, Column, Integer, String, BigInteger, SmallInteger, DECIMAL, ForeignKey, Date, select
 from sqlalchemy.orm import sessionmaker
@@ -35,19 +37,19 @@ class Cheque(Base):
     __tablename__ = "CHEQUE"
 
     id_cheque = Column(Integer, primary_key=True, autoincrement=True)
-    id_emitter_account = Column(Integer, ForeignKey("ACCOUNT.id_account"), nullable=False)
-    id_receptor_account = Column(Integer, ForeignKey("ACCOUNT.id_account") ,nullable=False)  # No tiene clave foránea en el SQL original
-    id_cheque_state = Column(Integer, ForeignKey("CHEQUESTATE.id_chequestate"), nullable=False)
+    idemitter_account = Column(Integer, ForeignKey("ACCOUNT.id_account"), nullable=False)
+    idreceptor_account = Column(Integer, ForeignKey("ACCOUNT.id_account") ,nullable=True)
+    id_chequestate = Column(Integer, ForeignKey("CHEQUESTATE.id_chequestate"), nullable=False)
     payment_cheque = Column(DECIMAL(13,2), nullable=True)
     pushDate_cheque = Column(Date, nullable=True)
     endDate_cheque = Column(Date, nullable=True)
     address_cheque = Column(String(100), nullable=True)
-    is_deferred_cheque = Column(SmallInteger, nullable=True)  # Se usa SmallInteger para simular booleanos
+    isdeferred_cheque = Column(SmallInteger, nullable=True)  # Se usa SmallInteger para simular booleanos
 
 class ChequeState(Base):
     __tablename__ = "CHEQUESTATE"
 
-    id_chequeState = Column(Integer, primary_key=True, autoincrement=True)
+    id_chequestate = Column(Integer, primary_key=True, autoincrement=True)
     state_cheque = Column(String(20), nullable=True)  # Se usa String en lugar de char(20)
 
 class Nationality(Base):
@@ -85,14 +87,14 @@ class AccountFormated:
 class ChequeFormated:
     def __init__(self, cheque:type[Cheque]):
         self.id_cheque = cheque.id_cheque
-        self.emitter_account = session.get(Account, {"id_account":cheque.id_emitter_account})
-        self.receptor_account = session.get(Account, {"id_account":cheque.id_receptor_account})
-        self.cheque_state = session.get(ChequeState, {"id_chequestate":cheque.id_cheque_state}).state_cheque
+        self.emitter_account = session.get(Account, {"id_account":cheque.idemitter_account})
+        self.receptor_account = session.get(Account, {"id_account":cheque.idreceptor_account})
+        self.cheque_state = session.get(ChequeState, {"id_chequestate":cheque.id_chequestate}).state_cheque
         self.payment_cheque = cheque.payment_cheque
         self.pushDate_cheque = cheque.pushDate_cheque
         self.endDate_cheque = cheque.endDate_cheque
         self.address_cheque = cheque.address_cheque
-        self.is_deferred_cheque = cheque.is_deferred_cheque
+        self.is_deferred_cheque = cheque.isdeferred_cheque
 
 
 class TransactionFormated:
@@ -121,17 +123,21 @@ def add_account(bank_id, nationality_id, account_number, ci, name, lastname, pho
 #Crear Cheque
 def add_cheque(id_emitter_account, id_receptor_account, id_cheque_state, payment, push_date, end_date, address, is_deferred):
     new_cheque = Cheque(
-        id_emitter_account = id_emitter_account,
-        id_receptor_account = id_receptor_account,
-        id_cheque_state = id_cheque_state,
+        idemitter_account = id_emitter_account,
+        idreceptor_account = id_receptor_account,
+        id_chequestate = id_cheque_state,
         payment_cheque = payment,
-        push_date_cheque = push_date,
-        end_date_cheque = end_date,
+        pushDate_cheque = push_date,
+        endDate_cheque = end_date,
         address_cheque = address,
-        is_deferred_chque = is_deferred
+        isdeferred_cheque = is_deferred
     )
     session.add(new_cheque)
     session.commit()
+
+def get_bank(id_):
+    bank = session.get(Bank, {"id_bank":id_})
+    return bank
 
 def get_nationalities():
     stmt = select(Nationality.c.country_nationality)
@@ -195,9 +201,16 @@ def get_transaction_(id_):
 
 
 #Global session reference
-Session = sessionmaker(bind=engine)
-session = Session()
+if __name__ == "__main__":
+    Session = sessionmaker(bind=engine)
+    session = Session()
 
-a = get_account_(3)
-
-print(f"Banco: {a.bank.name_bank} Contacto:{a.bank.phone_bank}")
+    cheque = get_cheque_(1)
+    print(f"""
+        Emisor: {cheque.emitter_account.name_account} {cheque.emitter_account.lastname_account}
+        Receptor: {cheque.receptor_account.name_account} {cheque.receptor_account.lastname_account}
+        Monto: {cheque.payment_cheque}
+        Fecha de emision: {cheque.pushDate_cheque}
+        Vence el: {cheque.endDate_cheque}
+        Banco a pagar: {get_bank(cheque.emitter_account.id_bank).name_bank} 
+    """)
