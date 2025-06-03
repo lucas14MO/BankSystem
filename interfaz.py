@@ -1,13 +1,18 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 
+from decimal import *
+
+import main
+from main import *
+
+
 class BancoApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Sistema Bancario Visual")
         self.geometry("800x600")
         self.configure(bg="#E6F0EA")
-        self.bancos = ["Banco Familiar", "Banco Continental", "Visión Banco"]
         self.banco_seleccionado = tk.StringVar(value="")
 
         self.frames = {}
@@ -23,12 +28,16 @@ class BancoApp(tk.Tk):
 
     def show_frame(self, cont):
         frame = self.frames[cont]
+        frame.on_frame_change()
         frame.tkraise()
+
 
 
 class SeleccionBancoFrame(tk.Frame):
     def __init__(self, master):
         super().__init__(master, bg="white")
+        self.session = session  # Guardar la sesión de base de datos
+
         tk.Label(self, text="Seleccione un banco", font=("Helvetica", 18, "bold"),
                  bg="white", fg="#007C4A").pack(pady=20)
 
@@ -39,14 +48,15 @@ class SeleccionBancoFrame(tk.Frame):
         self.tree = ttk.Treeview(self, columns=("Banco"), show="headings", height=5)
         self.tree.heading("Banco", text="Bancos disponibles")
         self.tree.bind("<Double-1>", self.seleccionar_banco)
-        self.tree_visible = False  # Para rastrear si el treeview está visible
+        self.tree_visible = False
 
         tk.Button(self, text="Ingresar", font=("Helvetica", 14),
                   bg="#007C4A", fg="white", command=self.validar_manual).pack(pady=10)
 
     def actualizar_sugerencias(self, event=None):
         texto = self.entry.get().lower().strip()
-        coincidencias = [b for b in self.master.bancos if texto in b.lower()]
+        bancos_disponibles = self.session.query(Bank).all()
+        coincidencias = [b.name_bank for b in bancos_disponibles if texto in b.name_bank.lower()]
 
         if texto and coincidencias:
             if not self.tree_visible:
@@ -69,7 +79,9 @@ class SeleccionBancoFrame(tk.Frame):
 
     def validar_manual(self):
         banco_ingresado = self.entry.get().strip()
-        if banco_ingresado in self.master.bancos:
+        banco_bd = self.session.query(Bank).filter_by(name_bank=banco_ingresado).first()
+
+        if banco_bd:
             self.master.banco_seleccionado.set(banco_ingresado)
             self.master.show_frame(MenuPrincipalFrame)
         else:
@@ -80,6 +92,9 @@ class SeleccionBancoFrame(tk.Frame):
                 self.master.show_frame(MenuPrincipalFrame)
             else:
                 messagebox.showerror("Error", "Debe seleccionar o ingresar un banco válido.")
+
+    def on_frame_change(self):
+        print("Cambio de frame!")
 
 class MenuPrincipalFrame(tk.Frame):
     def __init__(self, master):
@@ -112,6 +127,8 @@ class MenuPrincipalFrame(tk.Frame):
         self.info_banco.config(text=f"Banco seleccionado: {banco}")
         super().tkraise(*args, **kwargs)
 
+    def on_frame_change(self):
+        print("Cambio de frame!")
 
 class BancosFrame(tk.Frame):
     def __init__(self, master):
@@ -123,8 +140,10 @@ class BancosFrame(tk.Frame):
         self.lista.pack(pady=10, padx=20, fill="both", expand=True)
         self.actualizar_lista()
 
-        self.entry = tk.Entry(self, font=("Helvetica", 12))
-        self.entry.pack(pady=5, padx=20, fill="x")
+        self.nombre_entry = tk.Entry(self, font=("Helvetica", 12))
+        self.nombre_entry.pack(pady=5, padx=20, fill="x")
+        self.tel_entry = tk.Entry(self, font=("Helvetica", 12))
+        self.tel_entry.pack(pady=5, padx=20, fill="x")
 
         tk.Button(self, text="Agregar banco", bg="#007C4A", fg="white",
                   command=self.agregar_banco).pack(pady=5)
@@ -134,37 +153,39 @@ class BancosFrame(tk.Frame):
 
     def actualizar_lista(self):
         self.lista.delete(0, tk.END)
-        for banco in self.master.bancos:
-            self.lista.insert(tk.END, banco)
+        bancos = session.query(Bank).all()
+        for banco in bancos:
+            self.lista.insert(tk.END, banco.name_bank)
 
     def agregar_banco(self):
-        nuevo = self.entry.get().strip()
-        if nuevo and nuevo not in self.master.bancos:
-            self.master.bancos.append(nuevo)
-            self.entry.delete(0, tk.END)
-            self.actualizar_lista()
+        nuevo = self.nombre_entry.get().strip()
+        tel = self.tel_entry.get().strip()
+        if nuevo:
+            bancos = session.query(Bank).all()
 
+            for banco in bancos:
+                if str.lower(banco.name_bank) == str.lower(nuevo): return
+
+            if tel:
+                add_bank(bank_name= nuevo, bank_phone= tel)
+                self.nombre_entry.delete(0, tk.END)
+                self.actualizar_lista()
+
+    def on_frame_change(self):
+        print("Cambio de frame!")
 
 class CuentasFrame(tk.Frame):
     def __init__(self, master):
         super().__init__(master, bg="#F8FFF8")
         tk.Label(self, text="📂 Cuentas Bancarias", font=("Helvetica", 18, "bold"),
                  bg="#007C4A", fg="white", height=2).pack(fill="x")
-
+        self.master = master
         # Filtros y búsqueda
         filtro_frame = tk.Frame(self, bg="#F8FFF8")
         filtro_frame.pack(pady=10, padx=20, fill="x")
 
-        tk.Label(filtro_frame, text="Filtrar por tipo:", font=("Helvetica", 12),
-                 bg="#F8FFF8").pack(side="left", padx=(0, 10))
-
-        self.filtro_tipo = ttk.Combobox(filtro_frame, values=["Todos", "Corriente", "Caja Ahorro"], state="readonly")
-        self.filtro_tipo.set("Todos")
-        self.filtro_tipo.pack(side="left")
-        self.filtro_tipo.bind("<<ComboboxSelected>>", self.filtrar_cuentas)
-
         # Tabla
-        columnas = ["N° Cuenta", "Tipo", "Saldo", "Límite"]
+        columnas = ["N° Cuenta", "Nombres", "Apellidos", "Saldo", "Telefono"]
         self.tabla = ttk.Treeview(self, columns=columnas, show="headings", height=8)
         for col in columnas:
             self.tabla.heading(col, text=col)
@@ -172,19 +193,11 @@ class CuentasFrame(tk.Frame):
 
         self.tabla.pack(pady=10, padx=20, fill="both", expand=True)
 
-        # Datos simulados
-        self.datos_cuentas = [
-            ("001-123", "Corriente", "2.000.000", "1.000.000"),
-            ("002-456", "Caja Ahorro", "850.000", "0"),
-            ("003-789", "Corriente", "3.500.000", "1.500.000"),
-            ("004-321", "Caja Ahorro", "650.000", "0")
-        ]
-        self.mostrar_cuentas(self.datos_cuentas)
-
+        #self.mostrar_cuentas()
         # Indicadores visuales
         self.total_label = tk.Label(self, text="", font=("Helvetica", 12, "italic"), bg="#F8FFF8")
         self.total_label.pack(pady=5)
-        self.actualizar_resumen()
+        #self.actualizar_resumen()
 
         # Acciones
         acciones_frame = tk.Frame(self, bg="#F8FFF8")
@@ -196,31 +209,34 @@ class CuentasFrame(tk.Frame):
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=15)
 
-    def mostrar_cuentas(self, lista):
+    def mostrar_cuentas(self):
         self.tabla.delete(*self.tabla.get_children())
-        for c in lista:
-            self.tabla.insert("", "end", values=c)
 
-    def filtrar_cuentas(self, event=None):
-        tipo = self.filtro_tipo.get()
-        if tipo == "Todos":
-            self.mostrar_cuentas(self.datos_cuentas)
-        else:
-            filtradas = [c for c in self.datos_cuentas if c[1] == tipo]
-            self.mostrar_cuentas(filtradas)
-        self.actualizar_resumen()
+        banco = self.master.banco_seleccionado.get()
+        id_banco = get_bank_by_name(banco).id_bank
+        print(banco + "fff")
+        cuentas = get_account_from_bank(id_banco)
+        if cuentas:
+            for cuenta in cuentas:
+
+                self.tabla.insert("", "end", values=[
+                    cuenta.number_account, cuenta.name_account, cuenta.lastname_account, cuenta.balance_account, cuenta.phone_account
+                ])
+
 
     def actualizar_resumen(self):
-        total = 0
+        total = Decimal("0.00")
         for item in self.tabla.get_children():
-            saldo_str = self.tabla.item(item)["values"][2]
-            try:
-                saldo = int(saldo_str.replace(".", "").replace(",", ""))
-                total += saldo
-            except:
-                pass
+            saldo_str = self.tabla.item(item)["values"][3]
+            saldo = Decimal(saldo_str)
+            total += saldo
+
         cuentas_mostradas = len(self.tabla.get_children())
         self.total_label.config(text=f"Total de cuentas: {cuentas_mostradas} | Saldo acumulado: {total:,} Gs.".replace(",", "."))
+
+    def on_frame_change(self):
+        self.mostrar_cuentas()
+        self.actualizar_resumen()
 
 class ChequesFrame(tk.Frame):
     def __init__(self, master):
@@ -244,6 +260,8 @@ class ChequesFrame(tk.Frame):
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=10)
 
+    def on_frame_change(self):
+        print("Cambio de frame!")
 
 class DepositosFrame(tk.Frame):
     def __init__(self, master):
@@ -263,6 +281,8 @@ class DepositosFrame(tk.Frame):
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20)
 
+    def on_frame_change(self):
+        print("Cambio de frame!")
 
 class ExtraccionesFrame(tk.Frame):
     def __init__(self, master):
@@ -282,6 +302,8 @@ class ExtraccionesFrame(tk.Frame):
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20)
 
+    def on_frame_change(self):
+        print("Cambio de frame!")
 
 class ProyeccionesFrame(tk.Frame):
     def __init__(self, master):
@@ -293,6 +315,8 @@ class ProyeccionesFrame(tk.Frame):
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20)
 
+    def on_frame_change(self):
+        print("Cambio de frame!")
 
 class ConsideracionesFrame(tk.Frame):
     def __init__(self, master):
@@ -309,6 +333,8 @@ class ConsideracionesFrame(tk.Frame):
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20)
 
+    def on_frame_change(self):
+        print("Cambio de frame!")
 
 # ----------------------- Formularios adicionales ----------------------- #
 
@@ -343,6 +369,8 @@ class NuevoDepositoFrame(tk.Frame):
         messagebox.showinfo("Depósito registrado", f"Depósito guardado:\nCuenta: {cuenta}\nMonto: {monto}\nFecha: {fecha}")
         self.master.show_frame(DepositosFrame)
 
+    def on_frame_change(self):
+        print("Cambio de frame!")
 
 class NuevaExtraccionFrame(tk.Frame):
     def __init__(self, master):
@@ -375,6 +403,8 @@ class NuevaExtraccionFrame(tk.Frame):
         messagebox.showinfo("Extracción registrada", f"Extracción guardada:\nCuenta: {cuenta}\nMonto: {monto}\nFecha: {fecha}")
         self.master.show_frame(ExtraccionesFrame)
 
+    def on_frame_change(self):
+        print("Cambio de frame!")
 
 class NuevoChequeFrame(tk.Frame):
     def __init__(self, master):
@@ -399,6 +429,8 @@ class NuevoChequeFrame(tk.Frame):
 
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(ChequesFrame)).pack()
+    def on_frame_change(self):
+        print("Cambio de frame!")
 
     def guardar_cheque(self):
         tipo = self.tipo_entry.get()
@@ -407,8 +439,20 @@ class NuevoChequeFrame(tk.Frame):
         messagebox.showinfo("Cheque registrado", f"Cheque guardado:\nTipo: {tipo}\nNúmero: {numero}\nMonto: {monto}")
         self.master.show_frame(ChequesFrame)
 
+    def on_frame_change(self):
+        print("Cambio de frame!")
 
 # --------------------------- EJECUCIÓN --------------------------- #
 if __name__ == "__main__":
+    #Crear referencia a la base de datos
+    DATABASE_URL = "mysql+pymysql://root@localhost/banksystem"
+    engine = create_engine(DATABASE_URL)
+
+    #Coneccion a la base de datos
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    main.session = session
+
+    #UI
     app = BancoApp()
     app.mainloop()

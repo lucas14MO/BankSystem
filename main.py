@@ -192,6 +192,12 @@ def get_bank(id_):
     bank = session.get(Bank, {"id_bank":id_})
     return bank
 
+def get_bank_by_name(name: str):
+    bank = session.query(Bank).filter(Bank.name_bank == name)
+    if bank.count() != 0:
+        return bank.one()
+    else: return None
+
 def get_nationalities():
     stmt = select(Nationality.c.country_nationality)
     nat_list = session.execute(stmt)
@@ -199,16 +205,22 @@ def get_nationalities():
     return nat_list
 
 def get_nationality_by_name(nat_name:str):
-    nat = session.get(Nationality, {"country_nationality":nat_name})
-    return nat
+    nat = session.query(Nationality).filter(Nationality.country_nationality == nat_name)
+    if nat.count() != 0:
+        return nat.one()
+    else:
+        return None
 
 def get_nationality_by_id(nat_id:int):
     nat = session.get(Nationality, {"id_nationality": nat_id})
     return nat
 
 def get_cheque_state_by_name(state_name:str):
-    state = session.get(ChequeState, {"state_cheque": state_name})
-    return  state
+    state = session.query(ChequeState).filter(ChequeState.state_cheque == state_name)
+    if state.count() != 0:
+        return state.one()
+    else:
+        return None
 
 def get_cheque_state_by_id(state_id:int):
     state = session.get(ChequeState, {"id_chequestate": state_id})
@@ -218,6 +230,13 @@ def get_cheque_state_by_id(state_id:int):
 def get_account_raw(id_):
     acc = session.get(Account, {"id_account": id_})
     return acc
+
+
+def get_account_from_bank(id_bank):
+    accounts = session.query(Account).filter(Account.id_bank == id_bank)
+    if accounts.count() != 0:
+        return accounts.all()
+    else: return None
 
 #Obtener Objeto personalizado, reemplaza fk's por el registro al que apunta la id
 def get_account_(id_):
@@ -265,12 +284,11 @@ def delete_account(id_account_to_delete):
         session.commit()
 
 
-
+session = None
 #Global session reference
 if __name__ == "__main__":
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    acc_ = get_account_raw(1)
-    m = set_account_balance(acc_.id_account, Decimal("12000.00"))
+    m = get_bank_by_name("Ueno Bank S.A.E.C.A.")
     print(m)
