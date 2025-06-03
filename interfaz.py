@@ -1,4 +1,5 @@
 import tkinter as tk
+from datetime import datetime
 from doctest import master
 from tkinter import ttk, messagebox
 
@@ -22,7 +23,7 @@ class BancoApp(tk.Tk):
         for F in (SeleccionBancoFrame, MenuPrincipalFrame, BancosFrame, CuentasFrame,
                   ChequesFrame, Transacciones, ExtraccionesFrame,
                   ProyeccionesFrame, ConsideracionesFrame,
-                  NuevoDepositoFrame, NuevaExtraccionFrame, NuevoChequeFrame):
+                  NuevoDepositoFrame, NuevaExtraccionFrame, NuevoChequeFrame, NuevaCuentaFrame):
             frame = F(self)
             self.frames[F] = frame
             frame.place(relwidth=1, relheight=1)
@@ -120,6 +121,31 @@ class SeleccionBancoFrame(tk.Frame):
             else:
                 messagebox.showerror("Error", "Debe seleccionar o ingresar un banco válido.")
 
+    
+    def abrir_deposito(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevoDepositoFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevoDepositoFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def abrir_extraccion(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevaExtraccionFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevaExtraccionFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
     def on_frame_change(self):
         print("Cambio de frame: Selección de Banco")
 
@@ -150,6 +176,31 @@ class MenuPrincipalFrame(tk.Frame):
         banco = self.master.banco_seleccionado.get()
         self.info_banco.config(text=f"Banco seleccionado: {banco}")
         super().tkraise(*args, **kwargs)
+
+    
+    def abrir_deposito(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevoDepositoFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevoDepositoFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def abrir_extraccion(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevaExtraccionFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevaExtraccionFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
     def on_frame_change(self):
         print("Cambio de frame: Menu principal!")
@@ -256,6 +307,31 @@ class BancosFrame(tk.Frame):
         # Actualizar lista
         self.actualizar_lista()
 
+    
+    def abrir_deposito(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevoDepositoFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevoDepositoFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def abrir_extraccion(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevaExtraccionFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevaExtraccionFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
     def on_frame_change(self):
         print("Cambio de frame: Lista de Bancos")
         self.actualizar_lista()
@@ -287,7 +363,12 @@ class CuentasFrame(tk.Frame):
         acciones_frame = tk.Frame(self, bg="#F8FFF8")
         acciones_frame.pack(pady=10)
 
-        tk.Button(acciones_frame, text="➕ Agregar nueva cuenta", bg="#007C4A", fg="white", width=22).pack(side="left", padx=10)
+        tk.Button(acciones_frame, text="➕ Agregar nueva cuenta", bg="#007C4A", fg="white", width=22,
+          command=lambda: master.show_frame(NuevaCuentaFrame)).pack(side="left", padx=10)
+        tk.Button(acciones_frame, text="💰 Depositar", bg="#00B050", fg="white", width=15,
+          command=self.abrir_deposito).pack(side="left", padx=10)
+        tk.Button(acciones_frame, text="💸 Extraer", bg="#FF7043", fg="white", width=15,
+          command=self.abrir_extraccion).pack(side="left", padx=10)
         tk.Button(acciones_frame, text="🔍 Ver detalles", bg="white", width=15, command=self.detalle_cuenta).pack(side="left", padx=10)
 
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
@@ -325,6 +406,31 @@ class CuentasFrame(tk.Frame):
 
         frame = DetalleCuenta(ventana_detalle, acc_number)  # Asigna el frame a la nueva ventana
         frame.pack(fill="both", expand=True)  # Ajusta la visibilidad del frame en la nueva ventana
+
+    
+    def abrir_deposito(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevoDepositoFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevoDepositoFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def abrir_extraccion(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevaExtraccionFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevaExtraccionFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
     def on_frame_change(self):
         self.mostrar_cuentas()
@@ -400,6 +506,31 @@ class ChequesFrame(tk.Frame):
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=10)
 
+    
+    def abrir_deposito(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevoDepositoFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevoDepositoFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def abrir_extraccion(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevaExtraccionFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevaExtraccionFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
     def on_frame_change(self):
         nombre_banco = self.master.banco_seleccionado.get()
         id_banco = get_bank_by_name(nombre_banco).id_bank
@@ -439,7 +570,6 @@ class ChequesFrame(tk.Frame):
         # **Actualizar el conteo de cheques**
         self.label_cantidad.config(text=f"Total cheques: {len(cheques_filtrados)}")
 
-
 class Transacciones(tk.Frame):
     def __init__(self, master):
         super().__init__(master, bg="#F8FFF8")
@@ -452,20 +582,50 @@ class Transacciones(tk.Frame):
             self.tabla.heading(col, text=col)
         self.tabla.pack(pady=10, padx=10, fill="both", expand=True)
 
+        tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
+                  command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=10)
+
+    def abrir_deposito(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevoDepositoFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevoDepositoFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def abrir_extraccion(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevaExtraccionFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevaExtraccionFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
     def on_frame_change(self):
         nombre_banco = self.master.banco_seleccionado.get()
         id_banco = get_bank_by_name(nombre_banco).id_bank
 
         transacciones = get_transactions_from_bank(id_banco)
+        self.tabla.delete(*self.tabla.get_children())  # Limpiar la tabla antes de mostrar
         if transacciones:
             for transaccion in transacciones:
-                tra_formated = TransactionFormated(transaccion)
-                self.tabla.insert("", "end", values=[
-                    f"{tra_formated.emitter_account.number_account}:{tra_formated.emitter_account.name_account}",
-                    f"{tra_formated.receptor_account.number_account}:{tra_formated.receptor_account.name_account}",
-                    tra_formated.amount_transaction,
-                    tra_formated.date_transaction
-                ])
+                # Solo mostrar transferencias (emisor distinto de receptor)
+                if transaccion.idEmitter_account != transaccion.idReceptor_account:
+                    tra_formated = TransactionFormated(transaccion)
+                    self.tabla.insert("", "end", values=[
+                        f"{tra_formated.emitter_account.number_account}:{tra_formated.emitter_account.name_account}",
+                        f"{tra_formated.receptor_account.number_account}:{tra_formated.receptor_account.name_account}",
+                        tra_formated.amount_transaction,
+                        tra_formated.date_transaction
+                    ])
 
 class ExtraccionesFrame(tk.Frame):
     def __init__(self, master):
@@ -473,17 +633,35 @@ class ExtraccionesFrame(tk.Frame):
         tk.Label(self, text="Extracciones", font=("Helvetica", 18, "bold"),
                  bg="#007C4A", fg="white", height=2).pack(fill="x")
 
-        tk.Label(self, text="Monto: 800.000 Gs.", font=("Helvetica", 14),
-                 bg="#F8FFF8").pack(pady=10)
-        tk.Label(self, text="Fecha: 02/06/2025", font=("Helvetica", 14),
-                 bg="#F8FFF8").pack(pady=5)
-        tk.Label(self, text="Cuenta: 002-456", font=("Helvetica", 14),
-                 bg="#F8FFF8").pack(pady=5)
-
         tk.Button(self, text="➕ Hacer nueva extracción", bg="#4CAF50", fg="white",
                   command=lambda: master.show_frame(NuevaExtraccionFrame)).pack(pady=5)
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20)
+
+    
+    def abrir_deposito(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevoDepositoFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevoDepositoFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def abrir_extraccion(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevaExtraccionFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevaExtraccionFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
     def on_frame_change(self):
         print("Cambio de frame!")
@@ -497,6 +675,31 @@ class ProyeccionesFrame(tk.Frame):
                  font=("Helvetica", 14), bg="#F8FFF8").pack(pady=30)
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20)
+
+    
+    def abrir_deposito(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevoDepositoFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevoDepositoFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def abrir_extraccion(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevaExtraccionFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevaExtraccionFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
     def on_frame_change(self):
         print("Cambio de frame!")
@@ -515,6 +718,31 @@ class ConsideracionesFrame(tk.Frame):
             tk.Label(self, text=c, font=("Helvetica", 14), bg="#F8FFF8", anchor="w").pack(pady=10, padx=20)
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20)
+
+    
+    def abrir_deposito(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevoDepositoFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevoDepositoFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def abrir_extraccion(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevaExtraccionFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevaExtraccionFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
     def on_frame_change(self):
         print("Cambio de frame!")
@@ -535,22 +763,59 @@ class NuevoDepositoFrame(tk.Frame):
         self.monto_entry = tk.Entry(self, font=("Helvetica", 14))
         self.monto_entry.pack()
 
-        tk.Label(self, text="Fecha:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
-        self.fecha_entry = tk.Entry(self, font=("Helvetica", 14))
-        self.fecha_entry.pack()
-
         tk.Button(self, text="Guardar Depósito", bg="#007C4A", fg="white",
                   command=self.guardar_deposito).pack(pady=20)
-
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
-                  command=lambda: master.show_frame(Transacciones)).pack()
+                  command=lambda: master.show_frame(CuentasFrame)).pack()
+    def preparar(self, numero_cuenta):
+        self.cuenta_entry.config(state="normal")
+        self.cuenta_entry.delete(0, tk.END)
+        self.cuenta_entry.insert(0, str(numero_cuenta))
+        self.cuenta_entry.config(state="readonly")
+        self.monto_entry.delete(0, tk.END)
 
     def guardar_deposito(self):
-        cuenta = self.cuenta_entry.get()
-        monto = self.monto_entry.get()
-        fecha = self.fecha_entry.get()
-        messagebox.showinfo("Depósito registrado", f"Depósito guardado:\nCuenta: {cuenta}\nMonto: {monto}\nFecha: {fecha}")
-        self.master.show_frame(Transacciones)
+        try:
+            cuenta = int(self.cuenta_entry.get())
+            monto = Decimal(self.monto_entry.get())
+            fecha = datetime.now().date()  # Fecha automática
+
+            acc = get_account_by_acc_number(cuenta)
+            if acc is None:
+                messagebox.showerror("Error", "Cuenta no encontrada.")
+                return
+
+            modify_account_balance(acc.id_account, monto)
+            add_transaction(acc.id_account, acc.id_account, monto, fecha)
+            messagebox.showinfo("Éxito", "Depósito registrado correctamente.")
+            self.monto_entry.delete(0, tk.END)  # Limpiar monto para próxima operación
+            self.master.show_frame(CuentasFrame)
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al registrar el depósito: {e}")
+
+    def abrir_deposito(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevoDepositoFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevoDepositoFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def abrir_extraccion(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevaExtraccionFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevaExtraccionFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
     def on_frame_change(self):
         print("Cambio de frame!")
@@ -569,22 +834,64 @@ class NuevaExtraccionFrame(tk.Frame):
         self.monto_entry = tk.Entry(self, font=("Helvetica", 14))
         self.monto_entry.pack()
 
-        tk.Label(self, text="Fecha:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
-        self.fecha_entry = tk.Entry(self, font=("Helvetica", 14))
-        self.fecha_entry.pack()
-
         tk.Button(self, text="Guardar Extracción", bg="#007C4A", fg="white",
                   command=self.guardar_extraccion).pack(pady=20)
-
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
-                  command=lambda: master.show_frame(ExtraccionesFrame)).pack()
+                  command=lambda: master.show_frame(CuentasFrame)).pack()
+
+    def preparar(self, numero_cuenta):
+        self.cuenta_entry.config(state="normal")
+        self.cuenta_entry.delete(0, tk.END)
+        self.cuenta_entry.insert(0, str(numero_cuenta))
+        self.cuenta_entry.config(state="readonly")
+        self.monto_entry.delete(0, tk.END)
 
     def guardar_extraccion(self):
-        cuenta = self.cuenta_entry.get()
-        monto = self.monto_entry.get()
-        fecha = self.fecha_entry.get()
-        messagebox.showinfo("Extracción registrada", f"Extracción guardada:\nCuenta: {cuenta}\nMonto: {monto}\nFecha: {fecha}")
-        self.master.show_frame(ExtraccionesFrame)
+        try:
+            cuenta = int(self.cuenta_entry.get())
+            monto = Decimal(self.monto_entry.get())
+            fecha = datetime.now().date()
+
+            acc = get_account_by_acc_number(cuenta)
+            if acc is None:
+                messagebox.showerror("Error", "Cuenta no encontrada.")
+                return
+
+            if acc.balance_account < monto:
+                messagebox.showerror("Error", "Saldo insuficiente.")
+                return
+
+            modify_account_balance(acc.id_account, -monto)
+            add_transaction(acc.id_account, acc.id_account, -monto, fecha)
+            messagebox.showinfo("Éxito", "Extracción registrada correctamente.")
+            self.monto_entry.delete(0, tk.END)  # Limpiar monto para próxima operación
+            self.master.show_frame(CuentasFrame)
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al registrar la extracción: {e}")
+    
+    def abrir_deposito(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevoDepositoFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevoDepositoFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def abrir_extraccion(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevaExtraccionFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevaExtraccionFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
     def on_frame_change(self):
         print("Cambio de frame!")
@@ -596,7 +903,6 @@ class NuevoChequeFrame(tk.Frame):
                  bg="#007C4A", fg="white", height=2).pack(fill="x")
         #cuentas segun banco actual
         self.accounts = None
-        self.id_banco = -1
 
         tk.Label(self, text="Numero Cuenta Emisor:", font=("Helvetica", 14), bg="#F8FFF8").pack(
             pady=10)
@@ -642,29 +948,132 @@ class NuevoChequeFrame(tk.Frame):
         fecha_fi = self.fecha_fin.get()
         monto = Decimal(self.monto_entry.get())
 
-        ac_emisor = session.query(Account).filter(Account.number_account == int(nro_emisor) and Account.id_bank == self.id_banco)
-        ac_receptor = session.query(Account).filter(Account.number_account == int(nro_receptor))
-        if ac_emisor.count() != 0 and ac_receptor.count() != 0:
-            ac_emisor = ac_emisor.one()
-            ac_receptor = ac_receptor.one()
+        #ac = session.query(Ac)
+        add_cheque(
+            id_emitter_account = nro_emisor,
+            id_receptor_account = nro_receptor,
+            payment = monto,
+            push_date = fecha_in,
+            end_date = fecha_fi,
+            address = "ff",
+            is_deferred = diferido
+        )
 
-            add_cheque(
-                id_emitter_account = ac_emisor.id_account,
-                id_receptor_account = ac_receptor.id_account,
-                payment = monto,
-                push_date = fecha_in,
-                end_date = fecha_fi,
-                address = ac_emisor.address_account,
-                is_deferred = diferido,
-                id_cheque_state = 1
-            )
-            self.master.show_frame(ChequesFrame)
-        print("Ndda")
+        self.master.show_frame(ChequesFrame)
+
+    
+    def abrir_deposito(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevoDepositoFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevoDepositoFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def abrir_extraccion(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevaExtraccionFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevaExtraccionFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
     def on_frame_change(self):
         nombre_banco = self.master.banco_seleccionado.get()
-        self.id_banco = get_bank_by_name(nombre_banco).id_bank
-        self.accounts = get_account_from_bank(self.id_banco)
+        id_banco = get_bank_by_name(nombre_banco).id_bank
+        self.accounts = get_account_from_bank(id_banco)
+
+
+class NuevaCuentaFrame(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master, bg="#F8FFF8")
+        self.master = master
+        tk.Label(self, text="Registrar nueva cuenta", font=("Helvetica", 18, "bold"),
+                 bg="#007C4A", fg="white", height=2).pack(fill="x")
+
+        campos = ["N° Cuenta", "CI", "Nombre", "Apellido", "Teléfono", "Dirección"]
+        self.entradas = {}
+
+        for campo in campos:
+            tk.Label(self, text=campo + ":", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=5)
+            entry = tk.Entry(self, font=("Helvetica", 14))
+            entry.pack()
+            self.entradas[campo] = entry
+
+        # Combobox para nacionalidad
+        tk.Label(self, text="Nacionalidad:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=5)
+        self.nacionalidades = get_nationalities()
+        self.combo_nacionalidad = ttk.Combobox(self, state="readonly", font=("Helvetica", 14))
+        self.combo_nacionalidad["values"] = [n.country_nationality for n in self.nacionalidades]
+        self.combo_nacionalidad.pack()
+        if self.nacionalidades:
+            self.combo_nacionalidad.current(0)
+
+        tk.Button(self, text="Guardar Cuenta", bg="#007C4A", fg="white",
+                  command=self.guardar_cuenta).pack(pady=20)
+        tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
+                  command=lambda: master.show_frame(CuentasFrame)).pack()
+
+    def guardar_cuenta(self):
+        banco = self.master.banco_seleccionado.get()
+        id_banco = get_bank_by_name(banco).id_bank
+
+        idx = self.combo_nacionalidad.current()
+        if idx == -1:
+            messagebox.showerror("Error", "Debe seleccionar una nacionalidad.")
+            return
+        id_nacionalidad = self.nacionalidades[idx].id_nationality
+
+        try:
+            add_account(
+                bank_id=id_banco,
+                nationality_id=id_nacionalidad,
+                account_number=int(self.entradas["N° Cuenta"].get()),
+                ci=int(self.entradas["CI"].get()),
+                name=self.entradas["Nombre"].get(),
+                lastname=self.entradas["Apellido"].get(),
+                phone=int(self.entradas["Teléfono"].get()),
+                address=self.entradas["Dirección"].get()
+            )
+            messagebox.showinfo("Éxito", "Cuenta registrada correctamente.")
+            self.master.show_frame(CuentasFrame)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo registrar la cuenta.\n{e}")
+
+    def abrir_deposito(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevoDepositoFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevoDepositoFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def abrir_extraccion(self):
+        try:
+            selected = self.tabla.selection()
+            if not selected:
+                messagebox.showwarning("Aviso", "Debe seleccionar una cuenta.")
+                return
+            numero_cuenta = int(self.tabla.item(selected[0])["values"][0])
+            self.master.frames[NuevaExtraccionFrame].preparar(numero_cuenta)
+            self.master.show_frame(NuevaExtraccionFrame)
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+    def on_frame_change(self):
+        pass
 
 # --------------------------- EJECUCIÓN --------------------------- #
 if __name__ == "__main__":
