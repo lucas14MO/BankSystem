@@ -4,6 +4,8 @@ from tkinter import ttk, messagebox
 
 from decimal import *
 
+from sqlalchemy import false
+
 import main
 from main import *
 
@@ -372,10 +374,6 @@ class DetalleCuenta(tk.Frame):
             tk.Label(tarjeta, text=valor, anchor="w",
                      font=font_valor, fg=color_valor, bg="white").grid(row=idx, column=1, sticky="w", padx=10, pady=5)
 
-        # Botón Volver (opcional)
-        tk.Button(self, text="⬅ Volver", font=("Helvetica", 12),
-                  bg="#CCCCCC", command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20)
-
 class ChequesFrame(tk.Frame):
     def __init__(self, master):
         super().__init__(master, bg="#F8FFF8")
@@ -596,25 +594,36 @@ class NuevoChequeFrame(tk.Frame):
         super().__init__(master, bg="#F8FFF8")
         tk.Label(self, text="Registrar nuevo Cheque", font=("Helvetica", 18, "bold"),
                  bg="#007C4A", fg="white", height=2).pack(fill="x")
+        #cuentas segun banco actual
+        self.accounts = None
 
-        nombre_banco = self.master.banco_seleccionado.get()
-        id_banco = get_bank_by_name(nombre_banco).id_bank
-        self.accounts = get_account_from_bank(id_banco)
-
-        tk.Label(self, text="Tipo (A la vista / Diferido / Rechazado):", font=("Helvetica", 14), bg="#F8FFF8").pack(
+        tk.Label(self, text="Numero Cuenta Emisor:", font=("Helvetica", 14), bg="#F8FFF8").pack(
             pady=10)
-        self.tipo_entry = tk.Entry(self, font=("Helvetica", 14))
-        self.tipo_entry.pack()
+        self.nro_emisor = tk.Entry(self, font=("Helvetica", 14))
+        self.nro_emisor.pack()
 
-        tk.Label(self, text="Tipo (A la vista / Diferido / Rechazado):", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
-        self.tipo_entry = tk.Entry(self, font=("Helvetica", 14))
-        self.tipo_entry.pack()
 
-        tk.Label(self, text="Número:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
-        self.numero_entry = tk.Entry(self, font=("Helvetica", 14))
-        self.numero_entry.pack()
+        tk.Label(self, text="Numero Cuenta Receptor:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
+        self.nro_receptor = tk.Entry(self, font=("Helvetica", 14))
+        self.nro_receptor.pack()
 
-        tk.Label(self, text="Monto:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
+        tk.Label(self, text="Diferido:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
+        self.esDiferido = tk.BooleanVar()
+        self.esDiferido.set(False)
+        self.diferido = tk.Radiobutton(self, text="Si", font=("Helvetica", 14), value=True, variable=self.esDiferido)
+        self.diferido.pack()
+        self.noDiferido = tk.Radiobutton(self, text="No", font=("Helvetica", 14), value=False, variable=self.esDiferido)
+        self.noDiferido.pack()
+
+        tk.Label(self, text="Fecha Inicio:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
+        self.fecha_inicio = tk.Entry(self, font=("Helvetica", 14))
+        self.fecha_inicio.pack()
+
+        tk.Label(self, text="Fecha Fin:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
+        self.fecha_fin = tk.Entry(self, font=("Helvetica", 14))
+        self.fecha_fin.pack()
+
+        tk.Label(self, text="Monto: ", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
         self.monto_entry = tk.Entry(self, font=("Helvetica", 14))
         self.monto_entry.pack()
 
@@ -623,18 +632,32 @@ class NuevoChequeFrame(tk.Frame):
 
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(ChequesFrame)).pack()
-    def on_frame_change(self):
-        print("Cambio de frame!")
 
     def guardar_cheque(self):
-        tipo = self.tipo_entry.get()
-        numero = self.numero_entry.get()
-        monto = self.monto_entry.get()
-        messagebox.showinfo("Cheque registrado", f"Cheque guardado:\nTipo: {tipo}\nNúmero: {numero}\nMonto: {monto}")
+        nro_emisor = self.nro_emisor.get()
+        nro_receptor = self.nro_receptor.get()
+        diferido = 1 if self.esDiferido.get() else 0
+        fecha_in = self.fecha_inicio.get()
+        fecha_fi = self.fecha_fin.get()
+        monto = Decimal(self.monto_entry.get())
+
+        #ac = session.query(Ac)
+        add_cheque(
+            id_emitter_account = nro_emisor,
+            id_receptor_account = nro_receptor,
+            payment = monto,
+            push_date = fecha_in,
+            end_date = fecha_fi,
+            address = "ff",
+            is_deferred = diferido
+        )
+
         self.master.show_frame(ChequesFrame)
 
     def on_frame_change(self):
-        print("Cambio de frame!")
+        nombre_banco = self.master.banco_seleccionado.get()
+        id_banco = get_bank_by_name(nombre_banco).id_bank
+        self.accounts = get_account_from_bank(id_banco)
 
 # --------------------------- EJECUCIÓN --------------------------- #
 if __name__ == "__main__":
