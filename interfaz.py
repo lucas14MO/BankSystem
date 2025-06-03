@@ -596,6 +596,7 @@ class NuevoChequeFrame(tk.Frame):
                  bg="#007C4A", fg="white", height=2).pack(fill="x")
         #cuentas segun banco actual
         self.accounts = None
+        self.id_banco = -1
 
         tk.Label(self, text="Numero Cuenta Emisor:", font=("Helvetica", 14), bg="#F8FFF8").pack(
             pady=10)
@@ -641,23 +642,29 @@ class NuevoChequeFrame(tk.Frame):
         fecha_fi = self.fecha_fin.get()
         monto = Decimal(self.monto_entry.get())
 
-        #ac = session.query(Ac)
-        add_cheque(
-            id_emitter_account = nro_emisor,
-            id_receptor_account = nro_receptor,
-            payment = monto,
-            push_date = fecha_in,
-            end_date = fecha_fi,
-            address = "ff",
-            is_deferred = diferido
-        )
+        ac_emisor = session.query(Account).filter(Account.number_account == int(nro_emisor) and Account.id_bank == self.id_banco)
+        ac_receptor = session.query(Account).filter(Account.number_account == int(nro_receptor))
+        if ac_emisor.count() != 0 and ac_receptor.count() != 0:
+            ac_emisor = ac_emisor.one()
+            ac_receptor = ac_receptor.one()
 
-        self.master.show_frame(ChequesFrame)
+            add_cheque(
+                id_emitter_account = ac_emisor.id_account,
+                id_receptor_account = ac_receptor.id_account,
+                payment = monto,
+                push_date = fecha_in,
+                end_date = fecha_fi,
+                address = ac_emisor.address_account,
+                is_deferred = diferido,
+                id_cheque_state = 1
+            )
+            self.master.show_frame(ChequesFrame)
+        print("Ndda")
 
     def on_frame_change(self):
         nombre_banco = self.master.banco_seleccionado.get()
-        id_banco = get_bank_by_name(nombre_banco).id_bank
-        self.accounts = get_account_from_bank(id_banco)
+        self.id_banco = get_bank_by_name(nombre_banco).id_bank
+        self.accounts = get_account_from_bank(self.id_banco)
 
 # --------------------------- EJECUCIÓN --------------------------- #
 if __name__ == "__main__":
