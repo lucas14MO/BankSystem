@@ -242,6 +242,7 @@ class CuentasFrame(tk.Frame):
         self.actualizar_resumen()
 
 
+
 class DetalleCuenta(tk.Frame):
     def __init__(self, master, numero_cuenta):
         super().__init__(master, bg="#F8FFF8")
@@ -497,6 +498,15 @@ class NuevoChequeFrame(tk.Frame):
         super().__init__(master, bg="#F8FFF8")
         tk.Label(self, text="Registrar nuevo Cheque", font=("Helvetica", 18, "bold"),
                  bg="#007C4A", fg="white", height=2).pack(fill="x")
+
+        nombre_banco = self.master.banco_seleccionado.get()
+        id_banco = get_bank_by_name(nombre_banco).id_bank
+        self.accounts = get_account_from_bank(id_banco)
+
+        tk.Label(self, text="Tipo (A la vista / Diferido / Rechazado):", font=("Helvetica", 14), bg="#F8FFF8").pack(
+            pady=10)
+        self.tipo_entry = tk.Entry(self, font=("Helvetica", 14))
+        self.tipo_entry.pack()
 
         tk.Label(self, text="Tipo (A la vista / Diferido / Rechazado):", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
         self.tipo_entry = tk.Entry(self, font=("Helvetica", 14))
