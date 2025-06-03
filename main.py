@@ -39,6 +39,7 @@ class Cheque(Base):
     id_cheque = Column(Integer, primary_key=True, autoincrement=True)
     idEmitter_account = Column(Integer, ForeignKey("ACCOUNT.id_account"), nullable=False)
     idReceptor_account = Column(Integer, ForeignKey("ACCOUNT.id_account") ,nullable=True)#puede o no tener portador
+    idBank_cheque = Column(Integer, ForeignKey("BANK.id_bank") ,nullable=False)
     id_chequestate = Column(Integer, ForeignKey("CHEQUESTATE.id_chequestate"), nullable=False)
     payment_cheque = Column(DECIMAL(13,2), nullable=True)
     pushDate_cheque = Column(Date, nullable=True)
@@ -87,8 +88,9 @@ class AccountFormated:
 class ChequeFormated:
     def __init__(self, cheque:type[Cheque]):
         self.id_cheque = cheque.id_cheque
+        self.bank = session.get(Bank, {"id_bank": cheque.idBank_cheque})
         self.emitter_account = session.get(Account, {"id_account":cheque.idEmitter_account})
-        self.receptor_account = session.get(Account, {"id_account":cheque.idReceptor_account})
+        self.receptor_account = session.get(Account, {"id_account":cheque.idReceptor_account}) if cheque.idReceptor_account is not None else None
         self.cheque_state = session.get(ChequeState, {"id_chequestate":cheque.id_chequestate}).state_cheque
         self.payment_cheque = cheque.payment_cheque
         self.pushDate_cheque = cheque.pushDate_cheque
@@ -123,6 +125,7 @@ def add_account(bank_id, nationality_id, account_number, ci, name, lastname, pho
 #Crear Cheque
 def add_cheque(id_emitter_account, id_receptor_account, id_cheque_state, payment, push_date, end_date, address, is_deferred):
     new_cheque = Cheque(
+        idBank_cheque = session.get(Account, {"id_account": id_emitter_account}).id_bank,
         idEmitter_account = id_emitter_account,
         idReceptor_account = id_receptor_account,
         id_chequestate = id_cheque_state,
@@ -132,13 +135,14 @@ def add_cheque(id_emitter_account, id_receptor_account, id_cheque_state, payment
         address_cheque = address,
         isdeferred_cheque = is_deferred
     )
+
     session.add(new_cheque)
     session.commit()
 
 #Crear transaccion
-def add_transaction(id_bank, id_emitter_acc, id_receptor_acc, amount_, date_):
+def add_transaction(id_emitter_acc, id_receptor_acc, amount_, date_):
     new_transaction = Transaction(
-        id_bank = id_bank,
+        id_bank = session.get(Account, {"id_account": id_emitter_acc}).id_bank,
         idEmitter_account = id_emitter_acc,
         idReceptor_account = id_receptor_acc,
         amount_transaction = amount_,
@@ -236,6 +240,12 @@ def get_account_from_bank(id_bank):
     accounts = session.query(Account).filter(Account.id_bank == id_bank)
     if accounts.count() != 0:
         return accounts.all()
+    else: return None
+
+def get_cheque_from_bank(id_bank):
+    cheques = session.query(Cheque).filter(Cheque.idBank_cheque == id_bank)
+    if cheques.count() != 0:
+        return cheques.all()
     else: return None
 
 #Obtener Objeto personalizado, reemplaza fk's por el registro al que apunta la id

@@ -128,7 +128,7 @@ class MenuPrincipalFrame(tk.Frame):
         super().tkraise(*args, **kwargs)
 
     def on_frame_change(self):
-        print("Cambio de frame!")
+        print("Cambio de frame: Menu principal!")
 
 class BancosFrame(tk.Frame):
     def __init__(self, master):
@@ -214,7 +214,6 @@ class CuentasFrame(tk.Frame):
 
         banco = self.master.banco_seleccionado.get()
         id_banco = get_bank_by_name(banco).id_bank
-        print(banco + "fff")
         cuentas = get_account_from_bank(id_banco)
         if cuentas:
             for cuenta in cuentas:
@@ -238,22 +237,27 @@ class CuentasFrame(tk.Frame):
         self.mostrar_cuentas()
         self.actualizar_resumen()
 
+
 class ChequesFrame(tk.Frame):
     def __init__(self, master):
         super().__init__(master, bg="#F8FFF8")
         tk.Label(self, text="Cheques (a la vista, diferidos, rechazados)", font=("Helvetica", 16, "bold"),
                  bg="#007C4A", fg="white", height=2).pack(fill="x")
 
-        datos = [("A la vista", "001", "1.000.000"),
-                 ("Diferido", "002", "2.500.000"),
-                 ("Rechazado", "003", "500.000")]
-        columnas = ["Tipo", "N°", "Monto"]
-        tabla = ttk.Treeview(self, columns=columnas, show="headings", height=6)
+        columnas = ["Emisor", "Receptor", "Diferido", "Monto", "Fecha Emision", "Fecha Vencimiento", "Estado"]
+        self.tabla = ttk.Treeview(self, columns=columnas, show="headings", height=6)
         for col in columnas:
-            tabla.heading(col, text=col)
-        for d in datos:
-            tabla.insert("", "end", values=d)
-        tabla.pack(pady=20, padx=20, fill="both", expand=True)
+            self.tabla.heading(col, text=col)
+        self.tabla.pack(pady=10, padx=10, fill="both", expand=True)
+
+        # **Agregar Combobox para el filtro**
+        self.combo_estado = ttk.Combobox(self, state="readonly")
+        self.combo_estado.pack(pady=5)
+        self.combo_estado.bind("<<ComboboxSelected>>", self.actualizar_tabla)
+
+        # **Mostrar la cantidad de cheques**
+        self.label_cantidad = tk.Label(self, text="Total cheques: 0", font=("Helvetica", 12), bg="#F8FFF8")
+        self.label_cantidad.pack(pady=5)
 
         tk.Button(self, text="➕ Registrar nuevo cheque", bg="#4CAF50", fg="white",
                   command=lambda: master.show_frame(NuevoChequeFrame)).pack(pady=5)
@@ -261,7 +265,43 @@ class ChequesFrame(tk.Frame):
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=10)
 
     def on_frame_change(self):
-        print("Cambio de frame!")
+        nombre_banco = self.master.banco_seleccionado.get()
+        id_banco = get_bank_by_name(nombre_banco).id_bank
+
+        # **Obtener estados disponibles**
+        estados = [estado.state_cheque for estado in session.query(ChequeState).all()]
+        self.combo_estado["values"] = ["Todos"] + estados
+        self.combo_estado.set("Todos")  # Valor por defecto
+
+        self.actualizar_tabla()
+
+    def actualizar_tabla(self, event=None):
+        estado_seleccionado = self.combo_estado.get()
+        nombre_banco = self.master.banco_seleccionado.get()
+        id_banco = get_bank_by_name(nombre_banco).id_bank
+        cheques = get_cheque_from_bank(id_banco)
+
+        self.tabla.delete(*self.tabla.get_children())  # Limpiar tabla
+        cheques_filtrados = []
+        for cheque in cheques:
+            cheques_formated = ChequeFormated(cheque)
+            if estado_seleccionado == "Todos" or cheques_formated.cheque_state == estado_seleccionado:
+                cheques_filtrados.append(cheques_formated)
+
+        for cheque in cheques_filtrados:
+            self.tabla.insert("", "end", values=[
+                cheque.emitter_account.name_account,
+                cheque.receptor_account.name_account if cheque.receptor_account is not None else "Al portador",
+                "No" if cheque.is_deferred_cheque == 0 else "Sí",
+                cheque.payment_cheque,
+                cheque.pushDate_cheque,
+                cheque.endDate_cheque,
+                cheque.cheque_state
+            ])
+
+        # **Actualizar el conteo de cheques**
+        self.label_cantidad.config(text=f"Total cheques: {len(cheques_filtrados)}")
+
 
 class DepositosFrame(tk.Frame):
     def __init__(self, master):
