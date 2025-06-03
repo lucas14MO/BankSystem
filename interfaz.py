@@ -1,91 +1,67 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import font
 
-# Ventana principal
-root = tk.Tk()
-root.title("Sistema Bancario")
-root.geometry("800x600")
+class EkoUI(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("EKO - Interfaz Visual")
+        self.geometry("400x700")
+        self.configure(bg="#ffffff")
+        self.frames = {}
+        for F in (LoginScreen, MainScreen):
+            frame = F(self)
+            self.frames[F] = frame
+            frame.place(relwidth=1, relheight=1)
+        self.show_frame(LoginScreen)
 
-# Pestañas
-notebook = ttk.Notebook(root)
-notebook.pack(expand=True, fill="both")
+    def show_frame(self, cont):
+        frame = self.frames[cont]
+        frame.tkraise()
 
-# ==== BANCO ====
-banco_frame = ttk.Frame(notebook)
-notebook.add(banco_frame, text="Bancos")
+# ---------- Pantalla de inicio de sesión ----------
+class LoginScreen(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master, bg="#ffffff")
+        tk.Label(self, text="EKO", font=("Helvetica", 36, "bold"), fg="#008542", bg="white").pack(pady=60)
+        tk.Label(self, text="Número de celular", bg="white").pack(pady=(0, 5))
+        self.user = tk.Entry(self, font=("Helvetica", 14), width=30)
+        self.user.pack(pady=5)
 
-# Banco - Widgets
-label_banco = ttk.Label(banco_frame, text="Nombre del Banco:")
-label_banco.pack(pady=10)
-entry_banco = ttk.Entry(banco_frame, width=50)
-entry_banco.pack(pady=5)
+        tk.Label(self, text="PIN", bg="white").pack(pady=(20, 5))
+        self.password = tk.Entry(self, font=("Helvetica", 14), width=30, show="*")
+        self.password.pack(pady=5)
 
-label_tel_banco = ttk.Label(banco_frame, text="Teléfono:")
-label_tel_banco.pack(pady=10)
-entry_tel_banco = ttk.Entry(banco_frame, width=50)
-entry_tel_banco.pack(pady=5)
+        tk.Button(self, text="Ingresar", bg="#008542", fg="white",
+                  font=("Helvetica", 14, "bold"), width=20,
+                  command=lambda: master.show_frame(MainScreen)).pack(pady=40)
 
-# ==== CUENTA ====
-cuenta_frame = ttk.Frame(notebook)
-notebook.add(cuenta_frame, text="Cuentas")
+# ---------- Pantalla principal tipo EKO ----------
+class MainScreen(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master, bg="#F5F5F5")
+        header = tk.Frame(self, bg="#008542", height=120)
+        header.pack(fill="x")
+        tk.Label(header, text="Hola, Laura 👋", bg="#008542", fg="white", font=("Helvetica", 16)).place(x=20, y=20)
+        tk.Label(header, text="Saldo disponible", bg="#008542", fg="white", font=("Helvetica", 12)).place(x=20, y=60)
+        tk.Label(header, text="Gs. 2.300.000", bg="#008542", fg="white", font=("Helvetica", 22, "bold")).place(x=20, y=85)
 
-label_nombre = ttk.Label(cuenta_frame, text="Nombre:")
-label_nombre.pack(pady=10)
-entry_nombre = ttk.Entry(cuenta_frame, width=50)
-entry_nombre.pack(pady=5)
+        container = tk.Frame(self, bg="#F5F5F5")
+        container.pack(pady=30)
 
-label_apellido = ttk.Label(cuenta_frame, text="Apellido:")
-label_apellido.pack(pady=10)
-entry_apellido = ttk.Entry(cuenta_frame, width=50)
-entry_apellido.pack(pady=5)
+        self.big_button(container, "📤 Enviar dinero")
+        self.big_button(container, "💡 Pagar servicios")
+        self.big_button(container, "📄 Movimientos")
+        self.big_button(container, "🏧 Extraer efectivo")
+        self.big_button(container, "💳 Configurar tarjeta")
 
-label_cedula = ttk.Label(cuenta_frame, text="Cédula:")
-label_cedula.pack(pady=10)
-entry_cedula = ttk.Entry(cuenta_frame, width=50)
-entry_cedula.pack(pady=5)
+        tk.Button(self, text="🔒 Cerrar sesión", font=("Helvetica", 12),
+                  bg="#CCCCCC", command=lambda: master.show_frame(LoginScreen)).pack(pady=40)
 
-label_telefono = ttk.Label(cuenta_frame, text="Teléfono:")
-label_telefono.pack(pady=10)
-entry_telefono = ttk.Entry(cuenta_frame, width=50)
-entry_telefono.pack(pady=5)
+    def big_button(self, parent, text):
+        tk.Button(parent, text=text, font=("Helvetica", 14), width=30,
+                  height=2, bg="white", relief="groove").pack(pady=10)
 
-label_direccion = ttk.Label(cuenta_frame, text="Dirección:")
-label_direccion.pack(pady=10)
-entry_direccion = ttk.Entry(cuenta_frame, width=50)
-entry_direccion.pack(pady=5)
-
-# ==== CHEQUE ====
-cheque_frame = ttk.Frame(notebook)
-notebook.add(cheque_frame, text="Cheques")
-
-label_emisor = ttk.Label(cheque_frame, text="Cuenta Emisora:")
-label_emisor.pack(pady=10)
-entry_emisor = ttk.Entry(cheque_frame, width=50)
-entry_emisor.pack(pady=5)
-
-label_receptor = ttk.Label(cheque_frame, text="Cuenta Receptora:")
-label_receptor.pack(pady=10)
-entry_receptor = ttk.Entry(cheque_frame, width=50)
-entry_receptor.pack(pady=5)
-
-label_monto = ttk.Label(cheque_frame, text="Monto:")
-label_monto.pack(pady=10)
-entry_monto = ttk.Entry(cheque_frame, width=50)
-entry_monto.pack(pady=5)
-
-label_fecha_emision = ttk.Label(cheque_frame, text="Fecha de Emisión:")
-label_fecha_emision.pack(pady=10)
-entry_fecha_emision = ttk.Entry(cheque_frame, width=50)
-entry_fecha_emision.pack(pady=5)
-
-label_fecha_venc = ttk.Label(cheque_frame, text="Fecha de Vencimiento:")
-label_fecha_venc.pack(pady=10)
-entry_fecha_venc = ttk.Entry(cheque_frame, width=50)
-entry_fecha_venc.pack(pady=5)
-
-label_direccion_pago = ttk.Label(cheque_frame, text="Dirección de Pago:")
-label_direccion_pago.pack(pady=10)
-entry_direccion_pago = ttk.Entry(cheque_frame, width=50)
-entry_direccion_pago.pack(pady=5)
-
-root.mainloop()
+# Ejecutar interfaz
+if __name__ == "__main__":
+    app = EkoUI()
+    app.mainloop()
