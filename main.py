@@ -252,6 +252,19 @@ def get_transaction_(id_):
         return t
     else: return None
 
+def delete_bank(id_bank_to_delete):
+    bank_to_delete = session.get(Bank, {"id_bank": id_bank_to_delete})
+    if bank_to_delete is not None:
+        session.delete(bank_to_delete)
+        session.commit()
+
+def delete_account(id_account_to_delete):
+    account_to_delete = session.get(Account, {"id_account": id_account_to_delete})
+    if account_to_delete is not None:
+        session.delete(account_to_delete)
+        session.commit()
+
+
 
 #Global session reference
 if __name__ == "__main__":
