@@ -1,4 +1,5 @@
 import tkinter as tk
+from doctest import master
 from tkinter import ttk, messagebox
 
 from decimal import *
@@ -17,7 +18,7 @@ class BancoApp(tk.Tk):
 
         self.frames = {}
         for F in (SeleccionBancoFrame, MenuPrincipalFrame, BancosFrame, CuentasFrame,
-                  ChequesFrame, DepositosFrame, ExtraccionesFrame,
+                  ChequesFrame, Transacciones, ExtraccionesFrame,
                   ProyeccionesFrame, ConsideracionesFrame,
                   NuevoDepositoFrame, NuevaExtraccionFrame, NuevoChequeFrame):
             frame = F(self)
@@ -30,7 +31,6 @@ class BancoApp(tk.Tk):
         frame = self.frames[cont]
         frame.on_frame_change()
         frame.tkraise()
-
 
 
 class SeleccionBancoFrame(tk.Frame):
@@ -109,10 +109,7 @@ class MenuPrincipalFrame(tk.Frame):
             ("Bancos", BancosFrame),
             ("Cuentas", CuentasFrame),
             ("Cheques", ChequesFrame),
-            ("Depósitos", DepositosFrame),
-            ("Extracciones", ExtraccionesFrame),
-            ("Proyecciones", ProyeccionesFrame),
-            ("Consideraciones", ConsideracionesFrame)
+            ("Transacciones", Transacciones)
         ]
         for nombre, frame in opciones:
             tk.Button(self, text=nombre, font=("Helvetica", 14),
@@ -193,18 +190,16 @@ class CuentasFrame(tk.Frame):
 
         self.tabla.pack(pady=10, padx=20, fill="both", expand=True)
 
-        #self.mostrar_cuentas()
         # Indicadores visuales
         self.total_label = tk.Label(self, text="", font=("Helvetica", 12, "italic"), bg="#F8FFF8")
         self.total_label.pack(pady=5)
-        #self.actualizar_resumen()
 
         # Acciones
         acciones_frame = tk.Frame(self, bg="#F8FFF8")
         acciones_frame.pack(pady=10)
 
         tk.Button(acciones_frame, text="➕ Agregar nueva cuenta", bg="#007C4A", fg="white", width=22).pack(side="left", padx=10)
-        tk.Button(acciones_frame, text="🔍 Ver detalles", bg="white", width=15).pack(side="left", padx=10)
+        tk.Button(acciones_frame, text="🔍 Ver detalles", bg="white", width=15, command=self.detalle_cuenta).pack(side="left", padx=10)
 
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=15)
@@ -233,15 +228,59 @@ class CuentasFrame(tk.Frame):
         cuentas_mostradas = len(self.tabla.get_children())
         self.total_label.config(text=f"Total de cuentas: {cuentas_mostradas} | Saldo acumulado: {total:,} Gs.".replace(",", "."))
 
+    def detalle_cuenta(self):
+        acc_number = int(self.tabla.item(self.tabla.selection()[0], 'values')[0])
+
+        ventana_detalle = tk.Toplevel(self)  # Crea una nueva ventana independiente
+        ventana_detalle.title(f"Detalles de la cuenta {acc_number}")
+
+        frame = DetalleCuenta(ventana_detalle, acc_number)  # Asigna el frame a la nueva ventana
+        frame.pack(fill="both", expand=True)  # Ajusta la visibilidad del frame en la nueva ventana
+
     def on_frame_change(self):
         self.mostrar_cuentas()
         self.actualizar_resumen()
 
 
+class DetalleCuenta(tk.Frame):
+    def __init__(self, master, numero_cuenta):
+        super().__init__(master, bg="#F8FFF8")
+
+        # Obtener datos de la cuenta
+        cuenta = get_account_by_acc_number(numero_cuenta)
+        self.master = master
+        # Crear labels para mostrar los datos de la cuenta
+        self.id_label = tk.Label(self, text=f"Nacionalidad: {get_nationality_by_id(cuenta.id_nationality).country_nationality}",font=("Helvetica", 12, "italic"), bg="#F8FFF8")
+        self.id_label.pack(pady=5)
+
+        self.numero_label = tk.Label(self, text=f"Número de Cuenta: {cuenta.number_account}", font=("Helvetica", 12, "italic"), bg="#F8FFF8")
+        self.numero_label.pack(pady=5)
+
+        self.ci_label = tk.Label(self, text=f"Cedula: {cuenta.ci_account}", font=("Helvetica", 12, "italic"),bg="#F8FFF8")
+        self.ci_label.pack(pady=5)
+
+        self.nombre_label = tk.Label(self, text=f"Nombres: {cuenta.name_account}", font=("Helvetica", 12, "italic"),bg="#F8FFF8")
+        self.nombre_label.pack(pady=5)
+
+        self.apellido_label = tk.Label(self, text=f"Apellidos: {cuenta.lastname_account}",font=("Helvetica", 12, "italic"), bg="#F8FFF8")
+        self.apellido_label.pack(pady=5)
+
+        self.telefono_label = tk.Label(self, text=f"Teléfono: {cuenta.phone_account}",font=("Helvetica", 12, "italic"), bg="#F8FFF8")
+        self.telefono_label.pack(pady=5)
+
+        self.direccion_label = tk.Label(self, text=f"Dirección: {cuenta.address_account}",font=("Helvetica", 12, "italic"), bg="#F8FFF8")
+        self.direccion_label.pack(pady=5)
+
+        self.balance_label = tk.Label(self, text=f"Saldo: {cuenta.balance_account}",font=("Helvetica", 12, "italic"), bg="#F8FFF8")
+        self.balance_label.pack(pady=5)
+
+        self.faltas_label = tk.Label(self, text=f"Faltas: {cuenta.faults_account}", font=("Helvetica", 12, "italic"),bg="#F8FFF8")
+        self.faltas_label.pack(pady=5)
+
 class ChequesFrame(tk.Frame):
     def __init__(self, master):
         super().__init__(master, bg="#F8FFF8")
-        tk.Label(self, text="Cheques (a la vista, diferidos, rechazados)", font=("Helvetica", 16, "bold"),
+        tk.Label(self, text="Cheques", font=("Helvetica", 16, "bold"),
                  bg="#007C4A", fg="white", height=2).pack(fill="x")
 
         columnas = ["Emisor", "Receptor", "Diferido", "Monto", "Fecha Emision", "Fecha Vencimiento", "Estado"]
@@ -283,46 +322,53 @@ class ChequesFrame(tk.Frame):
 
         self.tabla.delete(*self.tabla.get_children())  # Limpiar tabla
         cheques_filtrados = []
-        for cheque in cheques:
-            cheques_formated = ChequeFormated(cheque)
-            if estado_seleccionado == "Todos" or cheques_formated.cheque_state == estado_seleccionado:
-                cheques_filtrados.append(cheques_formated)
+        if cheques:
+            for cheque in cheques:
+                cheques_formated = ChequeFormated(cheque)
+                if estado_seleccionado == "Todos" or cheques_formated.cheque_state == estado_seleccionado:
+                    cheques_filtrados.append(cheques_formated)
 
-        for cheque in cheques_filtrados:
-            self.tabla.insert("", "end", values=[
-                cheque.emitter_account.name_account,
-                cheque.receptor_account.name_account if cheque.receptor_account is not None else "Al portador",
-                "No" if cheque.is_deferred_cheque == 0 else "Sí",
-                cheque.payment_cheque,
-                cheque.pushDate_cheque,
-                cheque.endDate_cheque,
-                cheque.cheque_state
-            ])
+            for cheque in cheques_filtrados:
+                self.tabla.insert("", "end", values=[
+                    cheque.emitter_account.name_account,
+                    cheque.receptor_account.name_account if cheque.receptor_account is not None else "Al portador",
+                    "No" if cheque.is_deferred_cheque == 0 else "Sí",
+                    cheque.payment_cheque,
+                    cheque.pushDate_cheque,
+                    cheque.endDate_cheque,
+                    cheque.cheque_state
+                ])
 
         # **Actualizar el conteo de cheques**
         self.label_cantidad.config(text=f"Total cheques: {len(cheques_filtrados)}")
 
 
-class DepositosFrame(tk.Frame):
+class Transacciones(tk.Frame):
     def __init__(self, master):
         super().__init__(master, bg="#F8FFF8")
-        tk.Label(self, text="Depósitos", font=("Helvetica", 18, "bold"),
+        tk.Label(self, text="Transacciones Realizadas", font=("Helvetica", 16, "bold"),
                  bg="#007C4A", fg="white", height=2).pack(fill="x")
 
-        tk.Label(self, text="Monto: 1.500.000 Gs.", font=("Helvetica", 14),
-                 bg="#F8FFF8").pack(pady=10)
-        tk.Label(self, text="Fecha: 01/06/2025", font=("Helvetica", 14),
-                 bg="#F8FFF8").pack(pady=5)
-        tk.Label(self, text="Cuenta: 001-123", font=("Helvetica", 14),
-                 bg="#F8FFF8").pack(pady=5)
-
-        tk.Button(self, text="➕ Hacer nuevo depósito", bg="#4CAF50", fg="white",
-                  command=lambda: master.show_frame(NuevoDepositoFrame)).pack(pady=5)
-        tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
-                  command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20)
+        columnas = ["Emisor", "Receptor", "Monto", "Fecha Transaccion"]
+        self.tabla = ttk.Treeview(self, columns=columnas, show="headings", height=6)
+        for col in columnas:
+            self.tabla.heading(col, text=col)
+        self.tabla.pack(pady=10, padx=10, fill="both", expand=True)
 
     def on_frame_change(self):
-        print("Cambio de frame!")
+        nombre_banco = self.master.banco_seleccionado.get()
+        id_banco = get_bank_by_name(nombre_banco).id_bank
+
+        transacciones = get_transactions_from_bank(id_banco)
+        if transacciones:
+            for transaccion in transacciones:
+                tra_formated = TransactionFormated(transaccion)
+                self.tabla.insert("", "end", values=[
+                    f"{tra_formated.emitter_account.number_account}:{tra_formated.emitter_account.name_account}",
+                    f"{tra_formated.receptor_account.number_account}:{tra_formated.receptor_account.name_account}",
+                    tra_formated.amount_transaction,
+                    tra_formated.date_transaction
+                ])
 
 class ExtraccionesFrame(tk.Frame):
     def __init__(self, master):
@@ -400,14 +446,14 @@ class NuevoDepositoFrame(tk.Frame):
                   command=self.guardar_deposito).pack(pady=20)
 
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
-                  command=lambda: master.show_frame(DepositosFrame)).pack()
+                  command=lambda: master.show_frame(Transacciones)).pack()
 
     def guardar_deposito(self):
         cuenta = self.cuenta_entry.get()
         monto = self.monto_entry.get()
         fecha = self.fecha_entry.get()
         messagebox.showinfo("Depósito registrado", f"Depósito guardado:\nCuenta: {cuenta}\nMonto: {monto}\nFecha: {fecha}")
-        self.master.show_frame(DepositosFrame)
+        self.master.show_frame(Transacciones)
 
     def on_frame_change(self):
         print("Cambio de frame!")
