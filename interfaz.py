@@ -36,27 +36,48 @@ class BancoApp(tk.Tk):
 class SeleccionBancoFrame(tk.Frame):
     def __init__(self, master):
         super().__init__(master, bg="white")
-        self.session = session  # Guardar la sesión de base de datos
+        self.master = master
+        self.session = Session()  # Crea su propia sesión de base de datos
+        self.tree_visible = False
 
+        # Título
         tk.Label(self, text="Seleccione un banco", font=("Helvetica", 18, "bold"),
                  bg="white", fg="#007C4A").pack(pady=20)
 
-        self.entry = tk.Entry(self, font=("Helvetica", 14))
-        self.entry.pack(pady=10, ipadx=10, padx=20, fill="x")
+        # Campo de entrada
+        self.entry = tk.Entry(self, font=("Helvetica", 14), fg="grey")
+        self.entry.insert(0, "Ingrese el nombre del banco...")
+        self.entry.bind("<FocusIn>", self.limpiar_placeholder)
+        self.entry.bind("<FocusOut>", self.restaurar_placeholder)
         self.entry.bind("<KeyRelease>", self.actualizar_sugerencias)
+        self.entry.pack(pady=10, ipadx=10, padx=20, fill="x")
 
-        self.tree = ttk.Treeview(self, columns=("Banco"), show="headings", height=5)
+        # Árbol de resultados
+        self.tree = ttk.Treeview(self, columns=("Banco",), show="headings", height=5)
         self.tree.heading("Banco", text="Bancos disponibles")
         self.tree.bind("<Double-1>", self.seleccionar_banco)
-        self.tree_visible = False
 
+        # Botón para ingresar manualmente
         tk.Button(self, text="Ingresar", font=("Helvetica", 14),
                   bg="#007C4A", fg="white", command=self.validar_manual).pack(pady=10)
 
+    def limpiar_placeholder(self, event):
+        if self.entry.get() == "Ingrese el nombre del banco...":
+            self.entry.delete(0, tk.END)
+            self.entry.config(fg="black")
+
+    def restaurar_placeholder(self, event):
+        if not self.entry.get().strip():
+            self.entry.insert(0, "Ingrese el nombre del banco...")
+            self.entry.config(fg="grey")
+
     def actualizar_sugerencias(self, event=None):
         texto = self.entry.get().lower().strip()
-        bancos_disponibles = self.session.query(Bank).all()
-        coincidencias = [b.name_bank for b in bancos_disponibles if texto in b.name_bank.lower()]
+        if texto == "ingrese el nombre del banco...":
+            return
+
+        bancos = self.session.query(Bank).all()
+        coincidencias = [b.name_bank for b in bancos if texto in b.name_bank.lower()]
 
         if texto and coincidencias:
             if not self.tree_visible:
@@ -79,6 +100,10 @@ class SeleccionBancoFrame(tk.Frame):
 
     def validar_manual(self):
         banco_ingresado = self.entry.get().strip()
+        if banco_ingresado.lower() == "ingrese el nombre del banco...":
+            messagebox.showerror("Error", "Debe ingresar o seleccionar un banco válido.")
+            return
+
         banco_bd = self.session.query(Bank).filter_by(name_bank=banco_ingresado).first()
 
         if banco_bd:
@@ -94,7 +119,7 @@ class SeleccionBancoFrame(tk.Frame):
                 messagebox.showerror("Error", "Debe seleccionar o ingresar un banco válido.")
 
     def on_frame_change(self):
-        print("Cambio de frame!")
+        print("Cambio de frame: Selección de Banco")
 
 class MenuPrincipalFrame(tk.Frame):
     def __init__(self, master):
@@ -130,46 +155,108 @@ class MenuPrincipalFrame(tk.Frame):
 class BancosFrame(tk.Frame):
     def __init__(self, master):
         super().__init__(master, bg="#F8FFF8")
-        tk.Label(self, text="Listado de Bancos", font=("Helvetica", 18, "bold"),
+        self.master = master
+        self.session = Session()
+
+        # Encabezado
+        tk.Label(self, text="🏦 Listado de Bancos", font=("Helvetica", 20, "bold"),
                  bg="#007C4A", fg="white", height=2).pack(fill="x")
 
-        self.lista = tk.Listbox(self, font=("Helvetica", 12))
-        self.lista.pack(pady=10, padx=20, fill="both", expand=True)
+        # Contenedor principal
+        contenedor = tk.Frame(self, bg="#E6F2EC")
+        contenedor.pack(fill="both", expand=True, padx=40, pady=20)
+
+        # Frame tipo tarjeta para lista
+        card = tk.Frame(contenedor, bg="white", bd=2, relief="groove")
+        card.pack(fill="both", expand=True, side="left", padx=(0, 20), pady=10)
+
+        tk.Label(card, text="📋 Bancos registrados", font=("Helvetica", 14, "bold"),
+                 bg="white", fg="#333").pack(pady=10)
+
+        self.lista = tk.Listbox(card, font=("Helvetica", 12), bg="white", bd=0, highlightthickness=0)
+        self.lista.pack(pady=5, padx=10, fill="both", expand=True)
+
+        # Frame para agregar banco
+        form = tk.Frame(contenedor, bg="#E6F2EC")
+        form.pack(side="right", fill="y", expand=False)
+
+        tk.Label(form, text="➕ Agregar nuevo banco", font=("Helvetica", 14, "bold"),
+                 bg="#E6F2EC", fg="#007C4A").pack(pady=10)
+
+        # Nombre
+        self.nombre_entry = tk.Entry(form, font=("Helvetica", 12), fg="grey")
+        self.nombre_entry.insert(0, "Nombre del nuevo banco")
+        self.nombre_entry.bind("<FocusIn>", lambda e: self.limpiar_placeholder(self.nombre_entry, "Nombre del nuevo banco"))
+        self.nombre_entry.bind("<FocusOut>", lambda e: self.restaurar_placeholder(self.nombre_entry, "Nombre del nuevo banco"))
+        self.nombre_entry.pack(pady=5, padx=5, fill="x")
+
+        # Teléfono
+        self.tel_entry = tk.Entry(form, font=("Helvetica", 12), fg="grey")
+        self.tel_entry.insert(0, "Teléfono de contacto")
+        self.tel_entry.bind("<FocusIn>", lambda e: self.limpiar_placeholder(self.tel_entry, "Teléfono de contacto"))
+        self.tel_entry.bind("<FocusOut>", lambda e: self.restaurar_placeholder(self.tel_entry, "Teléfono de contacto"))
+        self.tel_entry.pack(pady=5, padx=5, fill="x")
+
+        # Botón Agregar
+        tk.Button(form, text="✅ Agregar banco", font=("Helvetica", 12),
+                  bg="#007C4A", fg="white", command=self.agregar_banco).pack(pady=10, fill="x", padx=5)
+
+        # Botón Volver
+        tk.Button(form, text="⬅ Volver al menú", font=("Helvetica", 12),
+                  bg="#CCCCCC", command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20, fill="x", padx=5)
+
         self.actualizar_lista()
 
-        self.nombre_entry = tk.Entry(self, font=("Helvetica", 12))
-        self.nombre_entry.pack(pady=5, padx=20, fill="x")
-        self.tel_entry = tk.Entry(self, font=("Helvetica", 12))
-        self.tel_entry.pack(pady=5, padx=20, fill="x")
+    def limpiar_placeholder(self, entry, placeholder):
+        if entry.get() == placeholder:
+            entry.delete(0, tk.END)
+            entry.config(fg="black")
 
-        tk.Button(self, text="Agregar banco", bg="#007C4A", fg="white",
-                  command=self.agregar_banco).pack(pady=5)
-
-        tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
-                  command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=10)
+    def restaurar_placeholder(self, entry, placeholder):
+        if not entry.get().strip():
+            entry.insert(0, placeholder)
+            entry.config(fg="grey")
 
     def actualizar_lista(self):
         self.lista.delete(0, tk.END)
-        bancos = session.query(Bank).all()
+        bancos = self.session.query(Bank).order_by(Bank.name_bank.asc()).all()
         for banco in bancos:
-            self.lista.insert(tk.END, banco.name_bank)
+            self.lista.insert(tk.END, f"{banco.name_bank} - {banco.phone_bank}")
 
     def agregar_banco(self):
-        nuevo = self.nombre_entry.get().strip()
-        tel = self.tel_entry.get().strip()
-        if nuevo:
-            bancos = session.query(Bank).all()
+        nombre = self.nombre_entry.get().strip()
+        telefono = self.tel_entry.get().strip()
 
-            for banco in bancos:
-                if str.lower(banco.name_bank) == str.lower(nuevo): return
+        if nombre.lower() == "nombre del nuevo banco" or not nombre:
+            messagebox.showwarning("Aviso", "Debe ingresar un nombre válido para el banco.")
+            return
+        if telefono.lower() == "teléfono de contacto" or not telefono:
+            messagebox.showwarning("Aviso", "Debe ingresar un número de teléfono válido.")
+            return
 
-            if tel:
-                add_bank(bank_name= nuevo, bank_phone= tel)
-                self.nombre_entry.delete(0, tk.END)
-                self.actualizar_lista()
+        # Verificar existencia
+        existe = self.session.query(Bank).filter(Bank.name_bank.ilike(nombre)).first()
+        if existe:
+            messagebox.showinfo("Ya existe", "Este banco ya está registrado.")
+            return
+
+        # Crear y guardar
+        nuevo_banco = Bank(name_bank=nombre, phone_bank=telefono)
+        self.session.add(nuevo_banco)
+        self.session.commit()
+
+        # Limpiar
+        self.nombre_entry.delete(0, tk.END)
+        self.tel_entry.delete(0, tk.END)
+        self.restaurar_placeholder(self.nombre_entry, "Nombre del nuevo banco")
+        self.restaurar_placeholder(self.tel_entry, "Teléfono de contacto")
+
+        # Actualizar lista
+        self.actualizar_lista()
 
     def on_frame_change(self):
-        print("Cambio de frame!")
+        print("Cambio de frame: Lista de Bancos")
+        self.actualizar_lista()
 
 class CuentasFrame(tk.Frame):
     def __init__(self, master):
@@ -244,38 +331,49 @@ class CuentasFrame(tk.Frame):
 
 class DetalleCuenta(tk.Frame):
     def __init__(self, master, numero_cuenta):
-        super().__init__(master, bg="#F8FFF8")
+        super().__init__(master, bg="#F0F8F5")
+        self.master = master
 
         # Obtener datos de la cuenta
         cuenta = get_account_by_acc_number(numero_cuenta)
-        self.master = master
-        # Crear labels para mostrar los datos de la cuenta
-        self.id_label = tk.Label(self, text=f"Nacionalidad: {get_nationality_by_id(cuenta.id_nationality).country_nationality}",font=("Helvetica", 12, "italic"), bg="#F8FFF8")
-        self.id_label.pack(pady=5)
+        if not cuenta:
+            messagebox.showerror("Error", "Cuenta no encontrada.")
+            return
 
-        self.numero_label = tk.Label(self, text=f"Número de Cuenta: {cuenta.number_account}", font=("Helvetica", 12, "italic"), bg="#F8FFF8")
-        self.numero_label.pack(pady=5)
+        # Frame estilo tarjeta
+        tarjeta = tk.Frame(self, bg="white", bd=2, relief="groove")
+        tarjeta.pack(pady=40, padx=40, ipadx=10, ipady=10)
 
-        self.ci_label = tk.Label(self, text=f"Cedula: {cuenta.ci_account}", font=("Helvetica", 12, "italic"),bg="#F8FFF8")
-        self.ci_label.pack(pady=5)
+        # Título
+        tk.Label(tarjeta, text="Detalles de la Cuenta", font=("Helvetica", 16, "bold"),
+                 bg="white", fg="#007C4A").grid(row=0, column=0, columnspan=2, pady=10)
 
-        self.nombre_label = tk.Label(self, text=f"Nombres: {cuenta.name_account}", font=("Helvetica", 12, "italic"),bg="#F8FFF8")
-        self.nombre_label.pack(pady=5)
+        # Diccionario de campos
+        datos = {
+            "Pais Documento": get_nationality_by_id(cuenta.id_nationality).country_nationality,
+            "Número de Cuenta": cuenta.number_account,
+            "Cédula": cuenta.ci_account,
+            "Nombres": cuenta.name_account,
+            "Apellidos": cuenta.lastname_account,
+            "Teléfono": cuenta.phone_account,
+            "Dirección": cuenta.address_account,
+            "Saldo": f"{cuenta.balance_account:,.2f} Gs",
+            "Faltas": cuenta.faults_account
+        }
 
-        self.apellido_label = tk.Label(self, text=f"Apellidos: {cuenta.lastname_account}",font=("Helvetica", 12, "italic"), bg="#F8FFF8")
-        self.apellido_label.pack(pady=5)
+        # Mostrar cada campo como fila
+        for idx, (campo, valor) in enumerate(datos.items(), start=1):
+            color_valor = "#28A745" if campo == "Saldo" else "black"
+            font_valor = ("Helvetica", 12, "bold") if campo == "Saldo" else ("Helvetica", 12)
 
-        self.telefono_label = tk.Label(self, text=f"Teléfono: {cuenta.phone_account}",font=("Helvetica", 12, "italic"), bg="#F8FFF8")
-        self.telefono_label.pack(pady=5)
+            tk.Label(tarjeta, text=f"{campo}:", anchor="w",
+                     font=("Helvetica", 12), bg="white", width=18).grid(row=idx, column=0, sticky="w", padx=10, pady=5)
+            tk.Label(tarjeta, text=valor, anchor="w",
+                     font=font_valor, fg=color_valor, bg="white").grid(row=idx, column=1, sticky="w", padx=10, pady=5)
 
-        self.direccion_label = tk.Label(self, text=f"Dirección: {cuenta.address_account}",font=("Helvetica", 12, "italic"), bg="#F8FFF8")
-        self.direccion_label.pack(pady=5)
-
-        self.balance_label = tk.Label(self, text=f"Saldo: {cuenta.balance_account}",font=("Helvetica", 12, "italic"), bg="#F8FFF8")
-        self.balance_label.pack(pady=5)
-
-        self.faltas_label = tk.Label(self, text=f"Faltas: {cuenta.faults_account}", font=("Helvetica", 12, "italic"),bg="#F8FFF8")
-        self.faltas_label.pack(pady=5)
+        # Botón Volver (opcional)
+        tk.Button(self, text="⬅ Volver", font=("Helvetica", 12),
+                  bg="#CCCCCC", command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20)
 
 class ChequesFrame(tk.Frame):
     def __init__(self, master):
