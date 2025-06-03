@@ -135,6 +135,59 @@ def add_cheque(id_emitter_account, id_receptor_account, id_cheque_state, payment
     session.add(new_cheque)
     session.commit()
 
+#Crear transaccion
+def add_transaction(id_bank, id_emitter_acc, id_receptor_acc, amount_, date_):
+    new_transaction = Transaction(
+        id_bank = id_bank,
+        idEmitter_account = id_emitter_acc,
+        idReceptor_account = id_receptor_acc,
+        amount_transaction = amount_,
+        date_transaction = date_
+    )
+    session.add(new_transaction)
+    session.commit()
+
+def update_account(id_account_to_edit, bank_id, nationality_id, account_number, ci, name, lastname, phone, address, faults):
+    acc_to_edit = get_account_raw(id_account_to_edit)
+    if acc_to_edit is not None:
+        acc_to_edit.id_bank = bank_id
+        acc_to_edit.id_nationality = nationality_id
+        acc_to_edit.number_account = account_number
+        acc_to_edit.ci_account = ci
+        acc_to_edit.name_account = name
+        acc_to_edit.lastname_account = lastname
+        acc_to_edit.phone_account = phone
+        acc_to_edit.address_account = address
+        acc_to_edit.faults_account = faults
+        session.commit()
+
+
+def set_account_balance(account_id, balance:Decimal):
+    acc = session.get(Account, {"id_account": account_id})
+    if acc is not None:
+        acc.balance_account = balance
+        session.commit()
+        return 1
+    else: return -1 #Indica si el setteo no se realizo
+
+
+def modify_account_balance(account_id, balance: Decimal):
+    acc = session.get(Account, {"id_account": account_id})
+    if acc is not None:
+        acc.balance_account += balance
+        session.commit()
+        return  1
+    else: return -1 #Indica si el setteo no se realizo
+
+
+def update_bank(id_bank_to_edit, bank_name, bank_phone):
+    bank_to_edit = session.get(Bank, {"id_bank": id_bank_to_edit})
+    if bank_to_edit is not None:
+        bank_to_edit.name_bank = bank_name
+        bank_to_edit.phone_bank = bank_phone
+        session.commit()
+
+
 def get_bank(id_):
     bank = session.get(Bank, {"id_bank":id_})
     return bank
@@ -147,7 +200,7 @@ def get_nationalities():
 
 def get_nationality_by_name(nat_name:str):
     nat = session.get(Nationality, {"country_nationality":nat_name})
-    return  nat
+    return nat
 
 def get_nationality_by_id(nat_id:int):
     nat = session.get(Nationality, {"id_nationality": nat_id})
@@ -205,16 +258,6 @@ if __name__ == "__main__":
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    cheque_raw = get_cheque_raw(1)
-    print(f"Emisor del cheque: {cheque_raw.idEmitter_account}" )
-
-    cheque_ = get_cheque_(1)
-    print(f"""
-        Emisor: {cheque_.emitter_account.name_account} {cheque_.emitter_account.lastname_account}
-        Receptor: {cheque_.receptor_account.name_account} {cheque_.receptor_account.lastname_account}
-        Monto: {cheque_.payment_cheque}
-        Fecha de emision: {cheque_.pushDate_cheque}
-        Vence el: {cheque_.endDate_cheque}
-        Banco a pagar: {get_bank(cheque_.emitter_account.id_bank).name_bank} 
-    """)
-    #Este es un comentario nuevo
+    acc_ = get_account_raw(1)
+    m = set_account_balance(acc_.id_account, Decimal("12000.00"))
+    print(m)
