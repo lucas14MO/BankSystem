@@ -37,8 +37,8 @@ class Cheque(Base):
     __tablename__ = "CHEQUE"
 
     id_cheque = Column(Integer, primary_key=True, autoincrement=True)
-    idemitter_account = Column(Integer, ForeignKey("ACCOUNT.id_account"), nullable=False)
-    idreceptor_account = Column(Integer, ForeignKey("ACCOUNT.id_account") ,nullable=True)
+    idEmitter_account = Column(Integer, ForeignKey("ACCOUNT.id_account"), nullable=False)
+    idReceptor_account = Column(Integer, ForeignKey("ACCOUNT.id_account") ,nullable=True)#puede o no tener portador
     id_chequestate = Column(Integer, ForeignKey("CHEQUESTATE.id_chequestate"), nullable=False)
     payment_cheque = Column(DECIMAL(13,2), nullable=True)
     pushDate_cheque = Column(Date, nullable=True)
@@ -64,8 +64,8 @@ class Transaction(Base):
 
     id_transaction = Column(Integer, primary_key=True, autoincrement=True)
     id_bank = Column(Integer, ForeignKey("BANK.id_bank"), nullable=False)
-    id_emitter_account = Column(Integer, ForeignKey("ACCOUNT.id_account"), nullable=False)
-    id_receptor_account = Column(Integer, ForeignKey("ACCOUNT.id_account"), nullable=True)#puede o no tener portador
+    idEmitter_account = Column(Integer, ForeignKey("ACCOUNT.id_account"), nullable=False)
+    idReceptor_account = Column(Integer, ForeignKey("ACCOUNT.id_account"), nullable=False)
     amount_transaction = Column(DECIMAL(13,2), nullable=True)
     date_transaction = Column(Date, nullable=True)
 
@@ -87,8 +87,8 @@ class AccountFormated:
 class ChequeFormated:
     def __init__(self, cheque:type[Cheque]):
         self.id_cheque = cheque.id_cheque
-        self.emitter_account = session.get(Account, {"id_account":cheque.idemitter_account})
-        self.receptor_account = session.get(Account, {"id_account":cheque.idreceptor_account})
+        self.emitter_account = session.get(Account, {"id_account":cheque.idEmitter_account})
+        self.receptor_account = session.get(Account, {"id_account":cheque.idReceptor_account})
         self.cheque_state = session.get(ChequeState, {"id_chequestate":cheque.id_chequestate}).state_cheque
         self.payment_cheque = cheque.payment_cheque
         self.pushDate_cheque = cheque.pushDate_cheque
@@ -101,8 +101,8 @@ class TransactionFormated:
     def __init__(self, transaction:type[Transaction]):
         self.id_transaction = transaction.id_transaction
         self.bank = session.get(Bank, {"id_bank":transaction.id_bank})
-        self.emitter_account = session.get(Account, {"id_account":transaction.id_emitter_account})
-        self.receptor_account = session.get(Account, {"id_account":transaction.id_receptor_account})
+        self.emitter_account = session.get(Account, {"id_account":transaction.idEmitter_account})
+        self.receptor_account = session.get(Account, {"id_account":transaction.idReceptor_account})
         self.amount_transaction = transaction.amount_transaction
         self.date_transaction = transaction.date_transaction
 
@@ -123,8 +123,8 @@ def add_account(bank_id, nationality_id, account_number, ci, name, lastname, pho
 #Crear Cheque
 def add_cheque(id_emitter_account, id_receptor_account, id_cheque_state, payment, push_date, end_date, address, is_deferred):
     new_cheque = Cheque(
-        idemitter_account = id_emitter_account,
-        idreceptor_account = id_receptor_account,
+        idEmitter_account = id_emitter_account,
+        idReceptor_account = id_receptor_account,
         id_chequestate = id_cheque_state,
         payment_cheque = payment,
         pushDate_cheque = push_date,
@@ -205,12 +205,16 @@ if __name__ == "__main__":
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    cheque = get_cheque_(1)
+    cheque_raw = get_cheque_raw(1)
+    print(f"Emisor del cheque: {cheque_raw.idEmitter_account}" )
+
+    cheque_ = get_cheque_(1)
     print(f"""
-        Emisor: {cheque.emitter_account.name_account} {cheque.emitter_account.lastname_account}
-        Receptor: {cheque.receptor_account.name_account} {cheque.receptor_account.lastname_account}
-        Monto: {cheque.payment_cheque}
-        Fecha de emision: {cheque.pushDate_cheque}
-        Vence el: {cheque.endDate_cheque}
-        Banco a pagar: {get_bank(cheque.emitter_account.id_bank).name_bank} 
+        Emisor: {cheque_.emitter_account.name_account} {cheque_.emitter_account.lastname_account}
+        Receptor: {cheque_.receptor_account.name_account} {cheque_.receptor_account.lastname_account}
+        Monto: {cheque_.payment_cheque}
+        Fecha de emision: {cheque_.pushDate_cheque}
+        Vence el: {cheque_.endDate_cheque}
+        Banco a pagar: {get_bank(cheque_.emitter_account.id_bank).name_bank} 
     """)
+    #Este es un comentario nuevo
