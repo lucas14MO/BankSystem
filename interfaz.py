@@ -1,8 +1,12 @@
 import tkinter as tk
+from tkcalendar import DateEntry
+from datetime import datetime, timedelta
 from doctest import master
 from tkinter import ttk, messagebox
 
 from decimal import *
+
+from sqlalchemy import false
 
 import main
 from main import *
@@ -329,6 +333,7 @@ class CuentasFrame(tk.Frame):
         self.actualizar_resumen()
 
 
+
 class DetalleCuenta(tk.Frame):
     def __init__(self, master, numero_cuenta):
         super().__init__(master, bg="#F0F8F5")
@@ -371,67 +376,70 @@ class DetalleCuenta(tk.Frame):
             tk.Label(tarjeta, text=valor, anchor="w",
                      font=font_valor, fg=color_valor, bg="white").grid(row=idx, column=1, sticky="w", padx=10, pady=5)
 
-        # Botón Volver (opcional)
-        tk.Button(self, text="⬅ Volver", font=("Helvetica", 12),
-                  bg="#CCCCCC", command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20)
-
 class ChequesFrame(tk.Frame):
     def __init__(self, master):
-        super().__init__(master, bg="#F8FFF8")
-        tk.Label(self, text="Cheques", font=("Helvetica", 16, "bold"),
-                 bg="#007C4A", fg="white", height=2).pack(fill="x")
-# Encabezado superior
-        tk.Label(self, text="📄 Cheques emitidos", font=("Helvetica", 20, "bold"),
-                 bg="#007C4A", fg="white", height=2).pack(fill="x")
+        super().__init__(master, bg="#F5F5F5")
+
+        # Encabezado superior
+        header = tk.Label(self, text="📄 Cheques emitidos", font=("Helvetica", 20, "bold"),
+                          bg="#2C7865", fg="white", pady=15)
+        header.pack(fill="x")
 
         # Contenedor principal
-        contenido = tk.Frame(self, bg="#E6F2EC")
+        contenido = tk.Frame(self, bg="#F5F5F5")
         contenido.pack(fill="both", expand=True, padx=20, pady=10)
 
         # Frame tipo tarjeta para tabla
-        tabla_card = tk.Frame(contenido, bg="white", bd=2, relief="groove")
-        tabla_card.pack(fill="both", expand=True)
+        tabla_card = tk.Frame(contenido, bg="white", bd=1, relief="solid")
+        tabla_card.pack(fill="both", expand=True, pady=10)
 
-        # Tabla con encabezados
-        columnas = ["Emisor", "Receptor", "Diferido", "Monto", "Fecha Emision", "Fecha Vencimiento", "Estado"]
-        self.tabla = ttk.Treeview(tabla_card, columns=columnas, show="headings", height=8)
+        # Tabla de cheques
+        columnas = ["Emisor", "Receptor", "Diferido", "Monto", "Fecha Emisión", "Fecha Vencimiento", "Estado"]
+        self.tabla = ttk.Treeview(tabla_card, columns=columnas, show="headings", height=10)
+
+        estilo = ttk.Style()
+        estilo.configure("Treeview.Heading", font=("Helvetica", 11, "bold"))
+        estilo.configure("Treeview", font=("Helvetica", 10), rowheight=28)
+
         for col in columnas:
             self.tabla.heading(col, text=col)
-            self.tabla.column(col, anchor="center")
+            self.tabla.column(col, anchor="center", width=110)
 
-        self.tabla.pack(pady=10, padx=10, fill="both", expand=True)
+        self.tabla.pack(padx=10, pady=10, fill="both", expand=True)
 
-        # Filtro y cantidad
-        control_frame = tk.Frame(contenido, bg="#E6F2EC")
-        control_frame.pack(fill="x", pady=5)
+        # Controles de filtro y cantidad
+        control_frame = tk.Frame(contenido, bg="#F5F5F5")
+        control_frame.pack(fill="x", pady=10)
 
-        tk.Label(control_frame, text="Filtrar por estado:", font=("Helvetica", 12), bg="#E6F2EC").pack(side="left", padx=(10, 5))
-        self.combo_estado = ttk.Combobox(control_frame, state="readonly")
+        tk.Label(control_frame, text="Filtrar por estado:", font=("Helvetica", 11), bg="#F5F5F5").pack(side="left", padx=(5, 5))
+        self.combo_estado = ttk.Combobox(control_frame, state="readonly", width=15)
         self.combo_estado.pack(side="left")
         self.combo_estado.bind("<<ComboboxSelected>>", self.actualizar_tabla)
 
-        self.label_cantidad = tk.Label(control_frame, text="Total cheques: 0", font=("Helvetica", 12), bg="#E6F2EC")
+        self.label_cantidad = tk.Label(control_frame, text="Total cheques: 0", font=("Helvetica", 11), bg="#F5F5F5")
         self.label_cantidad.pack(side="right", padx=10)
 
         # Botones de acción
-        botones = tk.Frame(self, bg="#E6F2EC")
+        botones = tk.Frame(self, bg="#F5F5F5")
         botones.pack(pady=10)
 
-        tk.Button(botones, text="➕ Registrar nuevo cheque", bg="#4CAF50", fg="white",
-                  font=("Helvetica", 12), padx=10,
-                  command=lambda: master.show_frame(NuevoChequeFrame)).pack(side="left", padx=10)
+        btn_registrar = tk.Button(botones, text="➕ Registrar nuevo cheque", bg="#4CAF50", fg="white",
+                                  font=("Helvetica", 11, "bold"), padx=10, pady=6, relief="flat",
+                                  command=lambda: master.show_frame(NuevoChequeFrame))
+        btn_registrar.pack(side="left", padx=10)
 
-        tk.Button(botones, text="⬅ Volver al menú", bg="#CCCCCC", font=("Helvetica", 12),
-                  command=lambda: master.show_frame(MenuPrincipalFrame)).pack(side="left", padx=10)
+        btn_volver = tk.Button(botones, text="⬅ Volver al menú", bg="#D9D9D9", font=("Helvetica", 11),
+                               padx=10, pady=6, relief="flat",
+                               command=lambda: master.show_frame(MenuPrincipalFrame))
+        btn_volver.pack(side="left", padx=10)
 
     def on_frame_change(self):
         nombre_banco = self.master.banco_seleccionado.get()
         id_banco = get_bank_by_name(nombre_banco).id_bank
 
-        # Obtener y configurar los estados
         estados = [estado.state_cheque for estado in session.query(ChequeState).all()]
         self.combo_estado["values"] = ["Todos"] + estados
-        self.combo_estado.set("Todos")  # Por defecto
+        self.combo_estado.set("Todos")
 
         self.actualizar_tabla()
 
@@ -441,7 +449,7 @@ class ChequesFrame(tk.Frame):
         id_banco = get_bank_by_name(nombre_banco).id_bank
         cheques = get_cheque_from_bank(id_banco)
 
-        self.tabla.delete(*self.tabla.get_children())  # Limpiar la tabla
+        self.tabla.delete(*self.tabla.get_children())
 
         cheques_filtrados = []
         if cheques:
@@ -615,39 +623,242 @@ class NuevaExtraccionFrame(tk.Frame):
 
 class NuevoChequeFrame(tk.Frame):
     def __init__(self, master):
-        super().__init__(master, bg="#F8FFF8")
-        tk.Label(self, text="Registrar nuevo Cheque", font=("Helvetica", 18, "bold"),
-                 bg="#007C4A", fg="white", height=2).pack(fill="x")
+        super().__init__(master, bg="#F5F5F5")
 
-        tk.Label(self, text="Tipo (A la vista / Diferido / Rechazado):", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
-        self.tipo_entry = tk.Entry(self, font=("Helvetica", 14))
-        self.tipo_entry.pack()
+        # Título superior
+        tk.Label(self, text="📝 Registrar nuevo Cheque", font=("Helvetica", 20, "bold"),
+                 bg="#2C7865", fg="white", pady=15).pack(fill="x")
 
-        tk.Label(self, text="Número:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
-        self.numero_entry = tk.Entry(self, font=("Helvetica", 14))
-        self.numero_entry.pack()
+        self.accounts = None
+        self.id_banco = -1
 
-        tk.Label(self, text="Monto:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
-        self.monto_entry = tk.Entry(self, font=("Helvetica", 14))
-        self.monto_entry.pack()
+        # Contenedor central tipo tarjeta
+        form_card = tk.Frame(self, bg="white", bd=1, relief="solid")
+        form_card.pack(padx=30, pady=20, fill="both", expand=True)
 
-        tk.Button(self, text="Guardar Cheque", bg="#007C4A", fg="white",
-                  command=self.guardar_cheque).pack(pady=20)
+        def add_labeled_entry(parent, label_text, var_attr, is_date=False):
+            tk.Label(parent, text=label_text, font=("Helvetica", 13, "bold"), bg="white", anchor="w").pack(fill="x", padx=20, pady=(12, 2))
+            if is_date:
+                entry = DateEntry(parent, font=("Helvetica", 13), background="darkblue", foreground="white", date_pattern="yyyy-mm-dd")
+            else:
+                entry = tk.Entry(parent, font=("Helvetica", 13), bg="#FAFAFA", relief="groove", bd=1)
+            entry.pack(padx=20, fill="x", pady=(0, 5))
+            setattr(self, var_attr, entry)
 
-        tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
-                  command=lambda: master.show_frame(ChequesFrame)).pack()
-    def on_frame_change(self):
-        print("Cambio de frame!")
+        # Campos
 
+        add_labeled_entry(form_card, "Número Cuenta Emisor:", "nro_emisor")
+        # Dentro de tu clase o función de interfaz
+        self.banco_receptor_cb = ttk.Combobox(self, state="readonly", width=40)
+        self.banco_receptor_cb.pack(pady=10)
+        self.banco_receptor_cb.bind("<<ComboboxSelected>>", self.banco_receptor_seleccionado)
+        add_labeled_entry(form_card, "Número Cuenta Receptor (Dejar en blanco para dejar al portador):", "nro_receptor")
+
+        # Diferido
+        tk.Label(form_card, text="¿Es Cheque Diferido? (Si el cheque no es diferido, la fecha de fin no se tomara en cuenta)", font=("Helvetica", 13, "bold"), bg="white", anchor="w").pack(fill="x", padx=20, pady=(12, 2))
+        self.esDiferido = tk.BooleanVar(value=False)
+
+        radio_frame = tk.Frame(form_card, bg="white")
+        radio_frame.pack(fill="x", padx=20)
+
+        tk.Radiobutton(radio_frame, text="Sí", variable=self.esDiferido, value=True,
+                       font=("Helvetica", 12), bg="white").pack(side="left", padx=10)
+        tk.Radiobutton(radio_frame, text="No", variable=self.esDiferido, value=False,
+                       font=("Helvetica", 12), bg="white").pack(side="left", padx=10)
+
+        add_labeled_entry(form_card, "Fecha de Emisión:", "fecha_inicio", is_date=True)
+        add_labeled_entry(form_card, "Fecha de Vencimiento:", "fecha_fin", is_date=True)
+        add_labeled_entry(form_card, "Monto:", "monto_entry")
+
+        # Botones
+        btn_frame = tk.Frame(form_card, bg="white")
+        btn_frame.pack(pady=20)
+
+        tk.Button(btn_frame, text="💾 Guardar Cheque", bg="#4CAF50", fg="white",
+                  font=("Helvetica", 12, "bold"), padx=10, pady=6, relief="flat",
+                  command=self.guardar_cheque).pack(side="left", padx=10)
+
+        tk.Button(btn_frame, text="⬅ Volver", bg="#D9D9D9", fg="black",
+                  font=("Helvetica", 12), padx=10, pady=6, relief="flat",
+                  command=lambda: master.show_frame(ChequesFrame)).pack(side="left", padx=10)
+        
+        # Crear Listbox para sugerencias, inicialmente oculto
+        self.lb_suggestions = tk.Listbox(self, height=5, font=("Helvetica", 12), bg="white", relief="solid", bd=1)
+        self.lb_suggestions.place_forget()  # Oculto al inicio
+
+        # Función para mostrar sugerencias
+        def show_suggestions(event):
+            typed = self.nro_emisor.get().strip()
+            if not typed or not self.accounts:
+                self.lb_suggestions.place_forget()
+                return
+
+            # Filtrar cuentas que empiezan con typed (como string)
+            filtered = [str(acc.number_account) for acc in self.accounts if str(acc.number_account).startswith(typed)]
+
+            if filtered:
+                self.lb_suggestions.delete(0, tk.END)
+                for item in filtered:
+                    self.lb_suggestions.insert(tk.END, item)
+
+                # Posicionar el listbox justo abajo del entry
+                x = self.nro_emisor.winfo_rootx() - self.winfo_rootx()
+                y = self.nro_emisor.winfo_rooty() - self.winfo_rooty() + self.nro_emisor.winfo_height()
+                width = self.nro_emisor.winfo_width()
+                self.lb_suggestions.place(x=x, y=y, width=width)
+            else:
+                self.lb_suggestions.place_forget()
+
+        # Función para elegir sugerencia y ponerla en el entry
+        def on_select_suggestion(event):
+            selection = self.lb_suggestions.curselection()
+            if selection:
+                picked = self.lb_suggestions.get(selection[0])
+                self.nro_emisor.delete(0, tk.END)
+                self.nro_emisor.insert(0, picked)
+                self.lb_suggestions.place_forget()
+
+        # Vincular eventos
+        self.nro_emisor.bind("<KeyRelease>", show_suggestions)
+        self.lb_suggestions.bind("<<ListboxSelect>>", on_select_suggestion)
+
+        # Para ocultar la lista si clickeás fuera
+        def hide_suggestions(event):
+            if event.widget != self.lb_suggestions and event.widget != self.nro_emisor:
+                self.lb_suggestions.place_forget()
+
+        self.bind_all("<Button-1>", hide_suggestions)   
+    def banco_receptor_seleccionado(self, event):
+        nombre_banco = self.banco_receptor_cb.get().strip()
+        if not nombre_banco:
+            return
+
+        # Buscar el banco por nombre
+        banco = session.query(Bank).filter(Bank.name_bank == nombre_banco).first()
+        if not banco:
+            messagebox.showerror("Error", "No se encontró el banco seleccionado.")
+            return
+
+        # Obtener todas las cuentas asociadas a ese banco
+        cuentas = session.query(Account).filter(Account.id_bank == banco.id_bank).all()
+
+        if not cuentas:
+            messagebox.showinfo("Sin cuentas", "Este banco no tiene cuentas registradas.")
+            self.receptor_cuenta_cb['values'] = []
+            return
+
+        # Preparar valores para mostrar: "Número - Nombre Apellido"
+        cuentas_mostrar = [
+            f"{cuenta.number_account} - {cuenta.name_account or ''} {cuenta.lastname_account or ''}".strip()
+            for cuenta in cuentas
+        ]
+
+        # Rellenar el combobox de cuentas receptoras
+        self.receptor_cuenta_cb['values'] = cuentas_mostrar
+        self.receptor_cuenta_cb.set('')  # Limpiar selección anterior si había
+    def cargar_bancos_receptores(self):
+        bancos = session.query(Bank).order_by(Bank.name_bank).all()
+        nombres_bancos = [b.name_bank for b in bancos]
+
+        self.banco_receptor_cb['values'] = nombres_bancos
+        if nombres_bancos:
+            self.banco_receptor_cb.set('')  # Limpia selección anterior
     def guardar_cheque(self):
-        tipo = self.tipo_entry.get()
-        numero = self.numero_entry.get()
-        monto = self.monto_entry.get()
-        messagebox.showinfo("Cheque registrado", f"Cheque guardado:\nTipo: {tipo}\nNúmero: {numero}\nMonto: {monto}")
+        nro_emisor = self.nro_emisor.get().strip()
+        nro_receptor = self.nro_receptor.get().strip()
+        fecha_in = self.fecha_inicio.get_date()
+        fecha_fi = self.fecha_fin.get_date()
+        monto_raw = self.monto_entry.get().strip()
+        diferido = 1 if self.esDiferido.get() else 0
+
+        # Validación básica
+        if not nro_emisor or not fecha_in or not monto_raw:
+            messagebox.showwarning("Campos incompletos", "Debe completar al menos: emisor, fecha y monto.")
+            return
+
+        # Calcular fecha fin
+        if diferido == 0:
+            fecha_fi = fecha_in + timedelta(days=30)
+        else:
+            max_fecha_fi = fecha_in + timedelta(days=180)
+            if fecha_fi > max_fecha_fi:
+                messagebox.showerror("Fecha inválida", "La fecha de vencimiento no puede ser más de 180 días después de la fecha de emisión.")
+                return
+
+        # Validar monto
+        try:
+            monto = Decimal(monto_raw)
+            if monto <= 0:
+                raise ValueError
+        except (InvalidOperation, ValueError):
+            messagebox.showerror("Monto inválido", "Ingrese un monto válido y mayor que cero.")
+            return
+
+        # Validar cuentas
+        try:
+            nro_emisor_int = int(nro_emisor)
+        except ValueError:
+            messagebox.showerror("Cuenta emisora inválida", "El número de cuenta emisora debe ser un entero.")
+            return
+
+        try:
+            nro_receptor_int = int(nro_receptor) if nro_receptor else None
+        except ValueError:
+            messagebox.showerror("Cuenta receptora inválida", "El número de cuenta receptora debe ser un entero.")
+            return
+
+        # Verificar cuenta emisora
+        ac_emisor_q = session.query(Account).filter(
+            Account.number_account == nro_emisor_int,
+            Account.id_bank == self.id_banco
+        )
+
+        if ac_emisor_q.count() == 0:
+            messagebox.showerror("Cuenta emisora no encontrada", "No se encontró la cuenta emisora en este banco.")
+            return
+
+        ac_emisor = ac_emisor_q.one()
+
+        # Verificar cuenta receptora (si hay)
+        ac_receptor = None
+        if nro_receptor_int:
+            ac_receptor_q = session.query(Account).filter(Account.number_account == nro_receptor_int)
+            if ac_receptor_q.count() == 0:
+                messagebox.showerror("Cuenta receptora no encontrada", "No se encontró la cuenta receptora.")
+                return
+            ac_receptor = ac_receptor_q.one()
+
+        # Determinar estado del cheque
+        if diferido == 1:
+            id_cheque_state = 1  # vigente
+        else:
+            if ac_emisor.balance_account is not None and ac_emisor.balance_account >= monto:
+                id_cheque_state = 1  # vigente
+            else:
+                id_cheque_state = 2  # rechazado
+
+        # Registrar cheque
+        add_cheque(
+            id_emitter_account=ac_emisor.id_account,
+            id_receptor_account=ac_receptor.id_account if ac_receptor else None,
+            payment=monto,
+            push_date=fecha_in.strftime("%Y-%m-%d"),
+            end_date=fecha_fi.strftime("%Y-%m-%d"),
+            address=ac_emisor.address_account,
+            is_deferred=diferido,
+            id_cheque_state=id_cheque_state
+        )
+
+        messagebox.showinfo("Éxito", f"Cheque registrado como {'vigente' if id_cheque_state == 1 else 'rechazado'}.")
         self.master.show_frame(ChequesFrame)
 
+       
+
     def on_frame_change(self):
-        print("Cambio de frame!")
+        nombre_banco = self.master.banco_seleccionado.get()
+        self.id_banco = get_bank_by_name(nombre_banco).id_bank
+        self.accounts = get_account_from_bank(self.id_banco)
+        
 
 # --------------------------- EJECUCIÓN --------------------------- #
 if __name__ == "__main__":
