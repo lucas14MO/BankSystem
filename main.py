@@ -235,6 +235,12 @@ def get_account_raw(id_):
     acc = session.get(Account, {"id_account": id_})
     return acc
 
+def get_account_by_acc_number(account_number):
+    account = session.query(Account).filter(Account.number_account == account_number)
+    if account.count() != 0:
+        return  account.one()
+    else: return None
+
 
 def get_account_from_bank(id_bank):
     accounts = session.query(Account).filter(Account.id_bank == id_bank)
@@ -246,6 +252,12 @@ def get_cheque_from_bank(id_bank):
     cheques = session.query(Cheque).filter(Cheque.idBank_cheque == id_bank)
     if cheques.count() != 0:
         return cheques.all()
+    else: return None
+
+def get_transactions_from_bank(id_bank):
+    transactions = session.query(Transaction).filter(Transaction.id_bank == id_bank)
+    if transactions.count() != 0:
+        return  transactions.all()
     else: return None
 
 #Obtener Objeto personalizado, reemplaza fk's por el registro al que apunta la id
