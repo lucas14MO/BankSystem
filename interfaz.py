@@ -380,35 +380,58 @@ class ChequesFrame(tk.Frame):
         super().__init__(master, bg="#F8FFF8")
         tk.Label(self, text="Cheques", font=("Helvetica", 16, "bold"),
                  bg="#007C4A", fg="white", height=2).pack(fill="x")
+# Encabezado superior
+        tk.Label(self, text="📄 Cheques emitidos", font=("Helvetica", 20, "bold"),
+                 bg="#007C4A", fg="white", height=2).pack(fill="x")
 
+        # Contenedor principal
+        contenido = tk.Frame(self, bg="#E6F2EC")
+        contenido.pack(fill="both", expand=True, padx=20, pady=10)
+
+        # Frame tipo tarjeta para tabla
+        tabla_card = tk.Frame(contenido, bg="white", bd=2, relief="groove")
+        tabla_card.pack(fill="both", expand=True)
+
+        # Tabla con encabezados
         columnas = ["Emisor", "Receptor", "Diferido", "Monto", "Fecha Emision", "Fecha Vencimiento", "Estado"]
-        self.tabla = ttk.Treeview(self, columns=columnas, show="headings", height=6)
+        self.tabla = ttk.Treeview(tabla_card, columns=columnas, show="headings", height=8)
         for col in columnas:
             self.tabla.heading(col, text=col)
+            self.tabla.column(col, anchor="center")
+
         self.tabla.pack(pady=10, padx=10, fill="both", expand=True)
 
-        # **Agregar Combobox para el filtro**
-        self.combo_estado = ttk.Combobox(self, state="readonly")
-        self.combo_estado.pack(pady=5)
+        # Filtro y cantidad
+        control_frame = tk.Frame(contenido, bg="#E6F2EC")
+        control_frame.pack(fill="x", pady=5)
+
+        tk.Label(control_frame, text="Filtrar por estado:", font=("Helvetica", 12), bg="#E6F2EC").pack(side="left", padx=(10, 5))
+        self.combo_estado = ttk.Combobox(control_frame, state="readonly")
+        self.combo_estado.pack(side="left")
         self.combo_estado.bind("<<ComboboxSelected>>", self.actualizar_tabla)
 
-        # **Mostrar la cantidad de cheques**
-        self.label_cantidad = tk.Label(self, text="Total cheques: 0", font=("Helvetica", 12), bg="#F8FFF8")
-        self.label_cantidad.pack(pady=5)
+        self.label_cantidad = tk.Label(control_frame, text="Total cheques: 0", font=("Helvetica", 12), bg="#E6F2EC")
+        self.label_cantidad.pack(side="right", padx=10)
 
-        tk.Button(self, text="➕ Registrar nuevo cheque", bg="#4CAF50", fg="white",
-                  command=lambda: master.show_frame(NuevoChequeFrame)).pack(pady=5)
-        tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
-                  command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=10)
+        # Botones de acción
+        botones = tk.Frame(self, bg="#E6F2EC")
+        botones.pack(pady=10)
+
+        tk.Button(botones, text="➕ Registrar nuevo cheque", bg="#4CAF50", fg="white",
+                  font=("Helvetica", 12), padx=10,
+                  command=lambda: master.show_frame(NuevoChequeFrame)).pack(side="left", padx=10)
+
+        tk.Button(botones, text="⬅ Volver al menú", bg="#CCCCCC", font=("Helvetica", 12),
+                  command=lambda: master.show_frame(MenuPrincipalFrame)).pack(side="left", padx=10)
 
     def on_frame_change(self):
         nombre_banco = self.master.banco_seleccionado.get()
         id_banco = get_bank_by_name(nombre_banco).id_bank
 
-        # **Obtener estados disponibles**
+        # Obtener y configurar los estados
         estados = [estado.state_cheque for estado in session.query(ChequeState).all()]
         self.combo_estado["values"] = ["Todos"] + estados
-        self.combo_estado.set("Todos")  # Valor por defecto
+        self.combo_estado.set("Todos")  # Por defecto
 
         self.actualizar_tabla()
 
@@ -418,26 +441,26 @@ class ChequesFrame(tk.Frame):
         id_banco = get_bank_by_name(nombre_banco).id_bank
         cheques = get_cheque_from_bank(id_banco)
 
-        self.tabla.delete(*self.tabla.get_children())  # Limpiar tabla
+        self.tabla.delete(*self.tabla.get_children())  # Limpiar la tabla
+
         cheques_filtrados = []
         if cheques:
             for cheque in cheques:
-                cheques_formated = ChequeFormated(cheque)
-                if estado_seleccionado == "Todos" or cheques_formated.cheque_state == estado_seleccionado:
-                    cheques_filtrados.append(cheques_formated)
+                cheque_fmt = ChequeFormated(cheque)
+                if estado_seleccionado == "Todos" or cheque_fmt.cheque_state == estado_seleccionado:
+                    cheques_filtrados.append(cheque_fmt)
 
-            for cheque in cheques_filtrados:
+            for chq in cheques_filtrados:
                 self.tabla.insert("", "end", values=[
-                    cheque.emitter_account.name_account,
-                    cheque.receptor_account.name_account if cheque.receptor_account is not None else "Al portador",
-                    "No" if cheque.is_deferred_cheque == 0 else "Sí",
-                    cheque.payment_cheque,
-                    cheque.pushDate_cheque,
-                    cheque.endDate_cheque,
-                    cheque.cheque_state
+                    chq.emitter_account.name_account,
+                    chq.receptor_account.name_account if chq.receptor_account else "Al portador",
+                    "No" if chq.is_deferred_cheque == 0 else "Sí",
+                    chq.payment_cheque,
+                    chq.pushDate_cheque,
+                    chq.endDate_cheque,
+                    chq.cheque_state
                 ])
 
-        # **Actualizar el conteo de cheques**
         self.label_cantidad.config(text=f"Total cheques: {len(cheques_filtrados)}")
 
 
