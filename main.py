@@ -203,10 +203,8 @@ def get_bank_by_name(name: str):
     else: return None
 
 def get_nationalities():
-    stmt = select(Nationality.c.country_nationality)
-    nat_list = session.execute(stmt)
-
-    return nat_list
+    # Devuelve una lista de objetos Nationality
+    return session.query(Nationality).all()
 
 def get_nationality_by_name(nat_name:str):
     nat = session.query(Nationality).filter(Nationality.country_nationality == nat_name)
