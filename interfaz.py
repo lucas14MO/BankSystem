@@ -1,4 +1,3 @@
-
 import tkinter as tk
 from tkinter import ttk, messagebox
 
@@ -14,7 +13,8 @@ class BancoApp(tk.Tk):
         self.frames = {}
         for F in (SeleccionBancoFrame, MenuPrincipalFrame, BancosFrame, CuentasFrame,
                   ChequesFrame, DepositosFrame, ExtraccionesFrame,
-                  ProyeccionesFrame, ConsideracionesFrame):
+                  ProyeccionesFrame, ConsideracionesFrame,
+                  NuevoDepositoFrame, NuevaExtraccionFrame, NuevoChequeFrame):
             frame = F(self)
             self.frames[F] = frame
             frame.place(relwidth=1, relheight=1)
@@ -38,21 +38,27 @@ class SeleccionBancoFrame(tk.Frame):
 
         self.tree = ttk.Treeview(self, columns=("Banco"), show="headings", height=5)
         self.tree.heading("Banco", text="Bancos disponibles")
-        self.tree.pack(pady=10, padx=20, fill="x")
         self.tree.bind("<Double-1>", self.seleccionar_banco)
+        self.tree_visible = False  # Para rastrear si el treeview está visible
 
         tk.Button(self, text="Ingresar", font=("Helvetica", 14),
                   bg="#007C4A", fg="white", command=self.validar_manual).pack(pady=10)
 
-        self.actualizar_sugerencias()
-
     def actualizar_sugerencias(self, event=None):
         texto = self.entry.get().lower().strip()
-        self.tree.delete(*self.tree.get_children())
-        if texto:
-            for banco in self.master.bancos:
-                if texto in banco.lower():
-                    self.tree.insert("", "end", values=(banco,))
+        coincidencias = [b for b in self.master.bancos if texto in b.lower()]
+
+        if texto and coincidencias:
+            if not self.tree_visible:
+                self.tree.pack(pady=10, padx=20, fill="x")
+                self.tree_visible = True
+            self.tree.delete(*self.tree.get_children())
+            for banco in coincidencias:
+                self.tree.insert("", "end", values=(banco,))
+        else:
+            if self.tree_visible:
+                self.tree.pack_forget()
+                self.tree_visible = False
 
     def seleccionar_banco(self, event):
         item = self.tree.focus()
@@ -62,13 +68,18 @@ class SeleccionBancoFrame(tk.Frame):
             self.master.show_frame(MenuPrincipalFrame)
 
     def validar_manual(self):
-        banco = self.entry.get().strip()
-        if banco in self.master.bancos:
-            self.master.banco_seleccionado.set(banco)
+        banco_ingresado = self.entry.get().strip()
+        if banco_ingresado in self.master.bancos:
+            self.master.banco_seleccionado.set(banco_ingresado)
             self.master.show_frame(MenuPrincipalFrame)
         else:
-            messagebox.showerror("Error", "Debe seleccionar un banco válido.")
-
+            item = self.tree.focus()
+            if item:
+                banco = self.tree.item(item)["values"][0]
+                self.master.banco_seleccionado.set(banco)
+                self.master.show_frame(MenuPrincipalFrame)
+            else:
+                messagebox.showerror("Error", "Debe seleccionar o ingresar un banco válido.")
 
 class MenuPrincipalFrame(tk.Frame):
     def __init__(self, master):
@@ -137,24 +148,79 @@ class BancosFrame(tk.Frame):
 class CuentasFrame(tk.Frame):
     def __init__(self, master):
         super().__init__(master, bg="#F8FFF8")
-        tk.Label(self, text="Cuentas", font=("Helvetica", 18, "bold"),
+        tk.Label(self, text="📂 Cuentas Bancarias", font=("Helvetica", 18, "bold"),
                  bg="#007C4A", fg="white", height=2).pack(fill="x")
 
-        cuentas = [("001-123", "Corriente", "2.000.000", "1.000.000"),
-                   ("002-456", "Caja Ahorro", "850.000", "0")]
+        # Filtros y búsqueda
+        filtro_frame = tk.Frame(self, bg="#F8FFF8")
+        filtro_frame.pack(pady=10, padx=20, fill="x")
 
+        tk.Label(filtro_frame, text="Filtrar por tipo:", font=("Helvetica", 12),
+                 bg="#F8FFF8").pack(side="left", padx=(0, 10))
+
+        self.filtro_tipo = ttk.Combobox(filtro_frame, values=["Todos", "Corriente", "Caja Ahorro"], state="readonly")
+        self.filtro_tipo.set("Todos")
+        self.filtro_tipo.pack(side="left")
+        self.filtro_tipo.bind("<<ComboboxSelected>>", self.filtrar_cuentas)
+
+        # Tabla
         columnas = ["N° Cuenta", "Tipo", "Saldo", "Límite"]
-        tabla = ttk.Treeview(self, columns=columnas, show="headings", height=6)
+        self.tabla = ttk.Treeview(self, columns=columnas, show="headings", height=8)
         for col in columnas:
-            tabla.heading(col, text=col)
-        for c in cuentas:
-            tabla.insert("", "end", values=c)
-        tabla.pack(pady=20, padx=20, fill="both", expand=True)
+            self.tabla.heading(col, text=col)
+            self.tabla.column(col, anchor="center")
 
-        tk.Button(self, text="Transferir entre cuentas", bg="#007C4A", fg="white").pack(pady=5)
+        self.tabla.pack(pady=10, padx=20, fill="both", expand=True)
+
+        # Datos simulados
+        self.datos_cuentas = [
+            ("001-123", "Corriente", "2.000.000", "1.000.000"),
+            ("002-456", "Caja Ahorro", "850.000", "0"),
+            ("003-789", "Corriente", "3.500.000", "1.500.000"),
+            ("004-321", "Caja Ahorro", "650.000", "0")
+        ]
+        self.mostrar_cuentas(self.datos_cuentas)
+
+        # Indicadores visuales
+        self.total_label = tk.Label(self, text="", font=("Helvetica", 12, "italic"), bg="#F8FFF8")
+        self.total_label.pack(pady=5)
+        self.actualizar_resumen()
+
+        # Acciones
+        acciones_frame = tk.Frame(self, bg="#F8FFF8")
+        acciones_frame.pack(pady=10)
+
+        tk.Button(acciones_frame, text="➕ Agregar nueva cuenta", bg="#007C4A", fg="white", width=22).pack(side="left", padx=10)
+        tk.Button(acciones_frame, text="🔍 Ver detalles", bg="white", width=15).pack(side="left", padx=10)
+
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
-                  command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=10)
+                  command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=15)
 
+    def mostrar_cuentas(self, lista):
+        self.tabla.delete(*self.tabla.get_children())
+        for c in lista:
+            self.tabla.insert("", "end", values=c)
+
+    def filtrar_cuentas(self, event=None):
+        tipo = self.filtro_tipo.get()
+        if tipo == "Todos":
+            self.mostrar_cuentas(self.datos_cuentas)
+        else:
+            filtradas = [c for c in self.datos_cuentas if c[1] == tipo]
+            self.mostrar_cuentas(filtradas)
+        self.actualizar_resumen()
+
+    def actualizar_resumen(self):
+        total = 0
+        for item in self.tabla.get_children():
+            saldo_str = self.tabla.item(item)["values"][2]
+            try:
+                saldo = int(saldo_str.replace(".", "").replace(",", ""))
+                total += saldo
+            except:
+                pass
+        cuentas_mostradas = len(self.tabla.get_children())
+        self.total_label.config(text=f"Total de cuentas: {cuentas_mostradas} | Saldo acumulado: {total:,} Gs.".replace(",", "."))
 
 class ChequesFrame(tk.Frame):
     def __init__(self, master):
@@ -173,6 +239,8 @@ class ChequesFrame(tk.Frame):
             tabla.insert("", "end", values=d)
         tabla.pack(pady=20, padx=20, fill="both", expand=True)
 
+        tk.Button(self, text="➕ Registrar nuevo cheque", bg="#4CAF50", fg="white",
+                  command=lambda: master.show_frame(NuevoChequeFrame)).pack(pady=5)
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=10)
 
@@ -190,6 +258,8 @@ class DepositosFrame(tk.Frame):
         tk.Label(self, text="Cuenta: 001-123", font=("Helvetica", 14),
                  bg="#F8FFF8").pack(pady=5)
 
+        tk.Button(self, text="➕ Hacer nuevo depósito", bg="#4CAF50", fg="white",
+                  command=lambda: master.show_frame(NuevoDepositoFrame)).pack(pady=5)
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20)
 
@@ -207,6 +277,8 @@ class ExtraccionesFrame(tk.Frame):
         tk.Label(self, text="Cuenta: 002-456", font=("Helvetica", 14),
                  bg="#F8FFF8").pack(pady=5)
 
+        tk.Button(self, text="➕ Hacer nueva extracción", bg="#4CAF50", fg="white",
+                  command=lambda: master.show_frame(NuevaExtraccionFrame)).pack(pady=5)
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20)
 
@@ -236,6 +308,104 @@ class ConsideracionesFrame(tk.Frame):
             tk.Label(self, text=c, font=("Helvetica", 14), bg="#F8FFF8", anchor="w").pack(pady=10, padx=20)
         tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
                   command=lambda: master.show_frame(MenuPrincipalFrame)).pack(pady=20)
+
+
+# ----------------------- Formularios adicionales ----------------------- #
+
+class NuevoDepositoFrame(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master, bg="#F8FFF8")
+        tk.Label(self, text="Nuevo Depósito", font=("Helvetica", 18, "bold"),
+                 bg="#007C4A", fg="white", height=2).pack(fill="x")
+
+        tk.Label(self, text="Cuenta:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
+        self.cuenta_entry = tk.Entry(self, font=("Helvetica", 14))
+        self.cuenta_entry.pack()
+
+        tk.Label(self, text="Monto:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
+        self.monto_entry = tk.Entry(self, font=("Helvetica", 14))
+        self.monto_entry.pack()
+
+        tk.Label(self, text="Fecha:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
+        self.fecha_entry = tk.Entry(self, font=("Helvetica", 14))
+        self.fecha_entry.pack()
+
+        tk.Button(self, text="Guardar Depósito", bg="#007C4A", fg="white",
+                  command=self.guardar_deposito).pack(pady=20)
+
+        tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
+                  command=lambda: master.show_frame(DepositosFrame)).pack()
+
+    def guardar_deposito(self):
+        cuenta = self.cuenta_entry.get()
+        monto = self.monto_entry.get()
+        fecha = self.fecha_entry.get()
+        messagebox.showinfo("Depósito registrado", f"Depósito guardado:\nCuenta: {cuenta}\nMonto: {monto}\nFecha: {fecha}")
+        self.master.show_frame(DepositosFrame)
+
+
+class NuevaExtraccionFrame(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master, bg="#F8FFF8")
+        tk.Label(self, text="Nueva Extracción", font=("Helvetica", 18, "bold"),
+                 bg="#007C4A", fg="white", height=2).pack(fill="x")
+
+        tk.Label(self, text="Cuenta:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
+        self.cuenta_entry = tk.Entry(self, font=("Helvetica", 14))
+        self.cuenta_entry.pack()
+
+        tk.Label(self, text="Monto:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
+        self.monto_entry = tk.Entry(self, font=("Helvetica", 14))
+        self.monto_entry.pack()
+
+        tk.Label(self, text="Fecha:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
+        self.fecha_entry = tk.Entry(self, font=("Helvetica", 14))
+        self.fecha_entry.pack()
+
+        tk.Button(self, text="Guardar Extracción", bg="#007C4A", fg="white",
+                  command=self.guardar_extraccion).pack(pady=20)
+
+        tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
+                  command=lambda: master.show_frame(ExtraccionesFrame)).pack()
+
+    def guardar_extraccion(self):
+        cuenta = self.cuenta_entry.get()
+        monto = self.monto_entry.get()
+        fecha = self.fecha_entry.get()
+        messagebox.showinfo("Extracción registrada", f"Extracción guardada:\nCuenta: {cuenta}\nMonto: {monto}\nFecha: {fecha}")
+        self.master.show_frame(ExtraccionesFrame)
+
+
+class NuevoChequeFrame(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master, bg="#F8FFF8")
+        tk.Label(self, text="Registrar nuevo Cheque", font=("Helvetica", 18, "bold"),
+                 bg="#007C4A", fg="white", height=2).pack(fill="x")
+
+        tk.Label(self, text="Tipo (A la vista / Diferido / Rechazado):", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
+        self.tipo_entry = tk.Entry(self, font=("Helvetica", 14))
+        self.tipo_entry.pack()
+
+        tk.Label(self, text="Número:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
+        self.numero_entry = tk.Entry(self, font=("Helvetica", 14))
+        self.numero_entry.pack()
+
+        tk.Label(self, text="Monto:", font=("Helvetica", 14), bg="#F8FFF8").pack(pady=10)
+        self.monto_entry = tk.Entry(self, font=("Helvetica", 14))
+        self.monto_entry.pack()
+
+        tk.Button(self, text="Guardar Cheque", bg="#007C4A", fg="white",
+                  command=self.guardar_cheque).pack(pady=20)
+
+        tk.Button(self, text="⬅ Volver", bg="#CCCCCC",
+                  command=lambda: master.show_frame(ChequesFrame)).pack()
+
+    def guardar_cheque(self):
+        tipo = self.tipo_entry.get()
+        numero = self.numero_entry.get()
+        monto = self.monto_entry.get()
+        messagebox.showinfo("Cheque registrado", f"Cheque guardado:\nTipo: {tipo}\nNúmero: {numero}\nMonto: {monto}")
+        self.master.show_frame(ChequesFrame)
 
 
 # --------------------------- EJECUCIÓN --------------------------- #
